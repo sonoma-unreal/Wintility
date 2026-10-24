@@ -4,9 +4,9 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Version = 'wintility-v0.1.0-alpha.1'
-$AssetUri = 'https://github.com/wintility/Wintility-Experimental/releases/download/wintility-v0.1.0-alpha.1/Wintility.ps1'
-$ExpectedSha256 = 'a3b00cb098d698a744382826977cd0ce5ca79072ed650fd94805bea67b5535d6'
+$Version = 'wintility-5.1.1-glowstone'
+$AssetUri = 'https://github.com/sonoma-unreal/Wintility/releases/download/wintility-5.1.1-glowstone/Wintility.ps1'
+$ExpectedSha256 = '9b622f0b3c2a4b73dd6ec3de9a5f633d240b08da0ac8f9738c61eb61232b51b4'
 
 Write-Host ''
 Write-Host 'Wintility bootstrapper' -ForegroundColor Cyan
