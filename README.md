@@ -17,6 +17,16 @@ powershell -ExecutionPolicy Bypass -File .\tests\RegistryRoundTripTest.ps1
 python3 tests/validate_config.py
 ```
 
+### Remote installer
+
+The tested Cloudflare Pages endpoint is:
+
+```powershell
+irm https://wintility.pages.dev/install.ps1 | iex
+```
+
+This downloads and executes the script returned by the URL. Review the [installer source](install.ps1) before running it. The bootstrapper checks the SHA-256 of its pinned release launcher before starting that launcher, but the one-line command does not independently authenticate the bootstrapper before PowerShell executes it. See [installer distribution and deployment](INSTALLER-DISTRIBUTION.md) for details.
+
 ## Standard user or administrator
 
 - **Standard session (no admin):** only tweaks that change your own settings (HKCU) are shown. Tweaks that need administrator access are not shown at all, and a tab with nothing left to show is hidden. Settings tells you how many are hidden.
