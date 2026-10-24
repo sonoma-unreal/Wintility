@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "settings": [
+    {
+      "id": "DisableAdvertisingId",
+      "name": "Turn off the advertising ID",
+      "description": "Stops apps from using the advertising ID to personalize ads. This does not turn off Windows telemetry.",
+      "tab": "Ads",
+      "category": "Ads",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
+          "name": "Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "DisableTailoredExperiences",
+      "name": "Stop tailored tips and recommendations",
+      "description": "Stops Windows from using diagnostic data to show tailored tips and suggestions. This does not disable telemetry itself.",
+      "tab": "Ads",
+      "category": "Ads",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Windows\\CloudContent",
+          "name": "DisableTailoredExperiencesWithDiagnosticData",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "StopSuggestedApps",
+      "name": "Stop suggested and pre-installed apps",
+      "description": "Stops Windows from suggesting apps in Start and re-adding promoted apps. Apps you already have are not touched.",
+      "tab": "Ads",
+      "category": "Suggestions",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SystemPaneSuggestionsEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SubscribedContent-338388Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SilentInstalledAppsEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "PreInstalledAppsEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "OemPreInstalledAppsEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "StopWindowsTips",
+      "name": "Stop tips and tricks notifications",
+      "description": "Stops the 'Get tips and suggestions when you use Windows' notifications.",
+      "tab": "Ads",
+      "category": "Suggestions",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SubscribedContent-338389Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SoftLandingEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "StopSettingsSuggestions",
+      "name": "Stop suggested content in Settings",
+      "description": "Stops Windows from showing suggested content and promotions inside the Settings app.",
+      "tab": "Ads",
+      "category": "Suggestions",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SubscribedContent-353694Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SubscribedContent-353696Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SubscribedContent-338393Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "StopLockScreenTips",
+      "name": "Remove lock screen tips and fun facts",
+      "description": "Stops the tips, tricks and fun facts that Windows Spotlight shows on the lock screen.",
+      "tab": "Ads",
+      "category": "Suggestions",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "RotatingLockScreenOverlayEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SubscribedContent-338387Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "StopWelcomeExperience",
+      "name": "Stop the welcome screens after updates",
+      "description": "Stops the 'Let's finish setting up your device' and 'Welcome to Windows' screens that can appear after an update.",
+      "tab": "Ads",
+      "category": "Suggestions",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+          "name": "SubscribedContent-310093Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+          "name": "ScoobeSystemSettingEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "StopSyncProviderAds",
+      "name": "Stop OneDrive and sync ads in File Explorer",
+      "description": "Stops File Explorer from showing promotions and notices for OneDrive and other sync providers.",
+      "tab": "Ads",
+      "category": "File Explorer",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "ShowSyncProviderNotifications",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "StopStartAccountNotices",
+      "name": "Stop account notices in Start",
+      "description": "Hides the account-related notices and prompts in the Start menu (Windows 11).",
+      "tab": "Ads",
+      "category": "File Explorer",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "Start_AccountNotifications",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    }
+  ]
+}

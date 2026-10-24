@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "settings": [
+    {
+      "id": "EdgeNoBackgroundActivity",
+      "name": "Edge: stop startup boost and background running",
+      "description": "Stops Edge from preloading at sign-in and from running in the background after you close it. Edge will say it is managed by your organization. Restart Edge, then check edge://policy.",
+      "tab": "Internet",
+      "category": "Edge (current user)",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "StartupBoostEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        },
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "BackgroundModeEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "EdgeNoPromotions",
+      "name": "Edge: hide first-run and promotions",
+      "description": "Hides the Edge welcome experience, Microsoft Rewards, and recommendation promotions. Edge will say it is managed by your organization. Restart Edge, then check edge://policy.",
+      "tab": "Internet",
+      "category": "Edge (current user)",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "HideFirstRunExperience",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        },
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "ShowMicrosoftRewards",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        },
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "SpotlightExperiencesAndRecommendationsEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "EdgeNoShoppingOrSidebar",
+      "name": "Edge: turn off shopping assistant and sidebar",
+      "description": "Turns off the Edge shopping assistant and the Copilot/Discover sidebar. Edge will say it is managed by your organization. Restart Edge, then check edge://policy.",
+      "tab": "Internet",
+      "category": "Edge (current user)",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "EdgeShoppingAssistantEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        },
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "HubsSidebarEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "EdgeNoUsageReports",
+      "name": "Edge: stop usage and personalization reports",
+      "description": "Stops Edge from sending usage statistics and personalization data to Microsoft. Edge will say it is managed by your organization. Restart Edge, then check edge://policy.",
+      "tab": "Internet",
+      "category": "Edge (current user)",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "MetricsReportingEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        },
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Edge",
+          "name": "PersonalizationReportingEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableNetworkThrottling",
+      "name": "Disable multimedia network throttling",
+      "description": "Removes Windows' limit on network traffic while multimedia apps are running. Can help streaming or heavy downloads on some PCs. Measure before keeping it.",
+      "tab": "Internet",
+      "category": "Network (needs administrator)",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
+          "name": "NetworkThrottlingIndex",
+          "type": "DWord",
+          "appliedValue": -1,
+          "defaultValue": 10
+        }
+      ]
+    },
+    {
+      "id": "DeliveryOptimizationHttpOnly",
+      "name": "Get updates only from Microsoft",
+      "description": "Stops Windows from sharing and downloading update pieces from other PCs on the internet. Updates may download a bit slower.",
+      "tab": "Internet",
+      "category": "Network (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization",
+          "name": "DODownloadMode",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableLlmnr",
+      "name": "Turn off LLMNR name lookups",
+      "description": "Turns off Link-Local Multicast Name Resolution, a legacy lookup protocol that can be abused on shared networks.",
+      "tab": "Internet",
+      "category": "Network (needs administrator)",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient",
+          "name": "EnableMulticast",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    }
+  ]
+}

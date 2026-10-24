@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "settings": [
+    {
+      "id": "EnableStorageSense",
+      "name": "Turn on Storage Sense",
+      "description": "Lets Windows run automatic cleanup on a schedule. Check Settings > System > Storage to see the rules it uses.",
+      "tab": "Storage",
+      "category": "Storage Sense",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy",
+          "name": "01",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "StorageSenseTempFiles",
+      "name": "Let Storage Sense delete temp files",
+      "description": "Allows Storage Sense to clear temporary files that apps are not using.",
+      "tab": "Storage",
+      "category": "Storage Sense",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy",
+          "name": "04",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "StorageSenseRecycleBin",
+      "name": "Empty the Recycle Bin automatically",
+      "description": "Lets Storage Sense permanently delete Recycle Bin items older than 30 days. Only works while Storage Sense is on.",
+      "tab": "Storage",
+      "category": "Storage Sense",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy",
+          "name": "08",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy",
+          "name": "256",
+          "type": "DWord",
+          "appliedValue": 30,
+          "defaultValue": 30
+        }
+      ]
+    },
+    {
+      "id": "StorageSenseWeekly",
+      "name": "Run Storage Sense every week",
+      "description": "Runs Storage Sense weekly instead of only when disk space is low. Only works while Storage Sense is on.",
+      "tab": "Storage",
+      "category": "Storage Sense",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy",
+          "name": "2048",
+          "type": "DWord",
+          "appliedValue": 7,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "NoThumbsDbOnNetwork",
+      "name": "Stop thumbnail files on network folders",
+      "description": "Stops File Explorer from leaving Thumbs.db files in network folders.",
+      "tab": "Storage",
+      "category": "Files",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Windows\\Explorer",
+          "name": "DisableThumbsDBOnNetworkFolders",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    }
+  ]
+}

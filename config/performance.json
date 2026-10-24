@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 1,
+  "settings": [
+    {
+      "id": "ReduceVisualEffects",
+      "name": "Reduce visual effects",
+      "description": "Turns off the translucent selection box, icon label shadows, taskbar animations, window drag previews and minimize/maximize animations. Sign out and back in to apply everything.",
+      "tab": "Performance",
+      "category": "Visual",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "ListviewAlphaSelect",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "ListviewShadow",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "TaskbarAnimations",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Control Panel\\Desktop",
+          "name": "DragFullWindows",
+          "type": "String",
+          "appliedValue": "0",
+          "defaultValue": "1"
+        },
+        {
+          "path": "HKCU:\\Control Panel\\Desktop\\WindowMetrics",
+          "name": "MinAnimate",
+          "type": "String",
+          "appliedValue": "0",
+          "defaultValue": "1"
+        }
+      ]
+    },
+    {
+      "id": "FasterMenus",
+      "name": "Show menus instantly",
+      "description": "Removes the short delay before menus open when you hover over them.",
+      "tab": "Performance",
+      "category": "Visual",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Control Panel\\Desktop",
+          "name": "MenuShowDelay",
+          "type": "String",
+          "appliedValue": "0",
+          "defaultValue": "400"
+        }
+      ]
+    },
+    {
+      "id": "DisableBackgroundApps",
+      "name": "Stop apps running in the background",
+      "description": "Blocks Store apps from running in the background. Apps may miss notifications and sync until you open them.",
+      "tab": "Performance",
+      "category": "Background",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications",
+          "name": "GlobalUserDisabled",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "NoStartupDelay",
+      "name": "Start sign-in apps without the delay",
+      "description": "Removes the built-in wait before the apps in your startup list begin to launch after you sign in.",
+      "tab": "Performance",
+      "category": "Startup",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize",
+          "name": "StartupDelayInMSec",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "FasterShutdown",
+      "name": "Close stuck apps faster at sign-out",
+      "description": "Windows waits about 2 seconds instead of 5 before closing an app that is not responding when you sign out or shut down. Unsaved work in a frozen app can be lost.",
+      "tab": "Performance",
+      "category": "Startup",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Control Panel\\Desktop",
+          "name": "AutoEndTasks",
+          "type": "String",
+          "appliedValue": "1",
+          "defaultValue": "0"
+        },
+        {
+          "path": "HKCU:\\Control Panel\\Desktop",
+          "name": "WaitToKillAppTimeout",
+          "type": "String",
+          "appliedValue": "2000",
+          "defaultValue": "5000"
+        },
+        {
+          "path": "HKCU:\\Control Panel\\Desktop",
+          "name": "HungAppTimeout",
+          "type": "String",
+          "appliedValue": "2000",
+          "defaultValue": "5000"
+        }
+      ]
+    },
+    {
+      "id": "DisableGameDvr",
+      "name": "Stop background game recording",
+      "description": "Turns off Game DVR background recording. Manual Game Bar captures may stop working too.",
+      "tab": "Performance",
+      "category": "Gaming",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\System\\GameConfigStore",
+          "name": "GameDVR_Enabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "DisableGameBarShortcut",
+      "name": "Turn off Game Bar prompts",
+      "description": "Stops the Game Bar startup panel and the controller button that opens Game Bar.",
+      "tab": "Performance",
+      "category": "Gaming",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\GameBar",
+          "name": "UseNexusForGameBarEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\GameBar",
+          "name": "ShowStartupPanel",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "EnableHardwareGpuScheduling",
+      "name": "Hardware-accelerated GPU scheduling",
+      "description": "Lets the GPU driver handle more of its own scheduling. Needs a supported driver and a restart. The benefit varies a lot by game.",
+      "tab": "Performance",
+      "category": "Gaming",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": true,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers",
+          "name": "HwSchMode",
+          "type": "DWord",
+          "appliedValue": 2,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "DisableMultiplaneOverlay",
+      "name": "Turn off Multiplane Overlay",
+      "description": "Can fix flickering or black screens on some graphics cards, at a small performance cost. Needs a restart.",
+      "tab": "Performance",
+      "category": "Gaming",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": true,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Dwm",
+          "name": "OverlayTestMode",
+          "type": "DWord",
+          "appliedValue": 5,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "EnableLongPaths",
+      "name": "Allow file paths longer than 260 characters",
+      "description": "Lets apps that support it open very long file paths. Needs a restart.",
+      "tab": "Performance",
+      "category": "System (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": true,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+          "name": "LongPathsEnabled",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        }
+      ]
+    }
+  ]
+}

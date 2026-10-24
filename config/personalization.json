@@ -1,0 +1,761 @@
+{
+  "schemaVersion": 1,
+  "settings": [
+    {
+      "id": "DisableTransparency",
+      "name": "Disable transparency effects",
+      "description": "Turns off transparency on the taskbar, Start and other shell surfaces. The speed gain is usually modest, so measure before you expect a difference.",
+      "tab": "Personalization",
+      "category": "Appearance",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+          "name": "EnableTransparency",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "ScrollbarsAlwaysVisible",
+      "name": "Keep scrollbars visible",
+      "description": "Keeps scrollbars on screen instead of hiding them until you move the mouse. Apps that are already open may need to be reopened.",
+      "tab": "Personalization",
+      "category": "Appearance",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Control Panel\\Accessibility",
+          "name": "DynamicScrollbars",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "DisableAeroShake",
+      "name": "Turn off Aero Shake",
+      "description": "Stops the 'shake a window to minimize everything else' gesture.",
+      "tab": "Personalization",
+      "category": "Appearance",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "DisallowShaking",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "HideSpotlightDesktopIcon",
+      "name": "Hide the Spotlight desktop icon",
+      "description": "Hides the 'Learn about this picture' icon that Windows Spotlight can add to your desktop.",
+      "tab": "Personalization",
+      "category": "Appearance",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
+          "name": "{2cc5ca98-6485-489a-920e-b3e88a6ccce3}",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "ShowFileExtensions",
+      "name": "Show file extensions",
+      "description": "Shows the extension on known file types in File Explorer, like report.pdf instead of report.",
+      "tab": "Personalization",
+      "category": "File Explorer",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "HideFileExt",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "ShowHiddenFiles",
+      "name": "Show hidden files and folders",
+      "description": "Shows files and folders that are marked hidden. Protected system files stay hidden.",
+      "tab": "Personalization",
+      "category": "File Explorer",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "Hidden",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 2
+        }
+      ]
+    },
+    {
+      "id": "OpenExplorerToThisPC",
+      "name": "Open File Explorer to This PC",
+      "description": "New File Explorer windows open to This PC instead of Home or Quick access.",
+      "tab": "Personalization",
+      "category": "File Explorer",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "LaunchTo",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "ShowFullPathInTitleBar",
+      "name": "Show the full path in the title bar",
+      "description": "Shows the full folder path in File Explorer's title where Windows supports it.",
+      "tab": "Personalization",
+      "category": "File Explorer",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CabinetState",
+          "name": "FullPath",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "HideQuickAccessRecent",
+      "name": "Hide recent files and frequent folders",
+      "description": "Stops File Explorer from listing recent files and frequent folders on its home page.",
+      "tab": "Personalization",
+      "category": "File Explorer",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
+          "name": "ShowRecent",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer",
+          "name": "ShowFrequent",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "CompactExplorerView",
+      "name": "Use compact spacing in File Explorer",
+      "description": "Tightens the space between items in File Explorer (Windows 11).",
+      "tab": "Personalization",
+      "category": "File Explorer",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "UseCompactMode",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "ShowThisPCOnDesktop",
+      "name": "Show This PC on the desktop",
+      "description": "Puts the This PC icon on your desktop.",
+      "tab": "Personalization",
+      "category": "Desktop",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
+          "name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "ShowUserFilesOnDesktop",
+      "name": "Show your user folder on the desktop",
+      "description": "Puts your user folder (Documents, Downloads and more) on your desktop.",
+      "tab": "Personalization",
+      "category": "Desktop",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
+          "name": "{59031a47-3f72-44a7-89c5-5595fe6b30ee}",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "TaskbarLeftAlign",
+      "name": "Align the taskbar to the left",
+      "description": "Moves the Start button and taskbar icons to the left (Windows 11).",
+      "tab": "Personalization",
+      "category": "Taskbar",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "TaskbarAl",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "HideTaskViewButton",
+      "name": "Hide the Task View button",
+      "description": "Removes the Task View button from the taskbar.",
+      "tab": "Personalization",
+      "category": "Taskbar",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "ShowTaskViewButton",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "HideTaskbarSearch",
+      "name": "Hide taskbar search",
+      "description": "Hides the search box or icon on the taskbar. You can still search from Start. Reverting brings back the search icon.",
+      "tab": "Personalization",
+      "category": "Taskbar",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
+          "name": "SearchboxTaskbarMode",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "ShowSecondsInClock",
+      "name": "Show seconds in the taskbar clock",
+      "description": "Adds seconds to the clock in the system tray.",
+      "tab": "Personalization",
+      "category": "Taskbar",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "ShowSecondsInSystemClock",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "NeverCombineTaskbar",
+      "name": "Never combine taskbar buttons",
+      "description": "Shows a separate taskbar button for every window instead of grouping them, on every monitor.",
+      "tab": "Personalization",
+      "category": "Taskbar",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "TaskbarGlomLevel",
+          "type": "DWord",
+          "appliedValue": 2,
+          "defaultValue": 0
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "MMTaskbarGlomLevel",
+          "type": "DWord",
+          "appliedValue": 2,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "EndTaskOnTaskbar",
+      "name": "Add End task to the taskbar menu",
+      "description": "Adds 'End task' to the right-click menu of taskbar apps (Windows 11 23H2 or newer).",
+      "tab": "Personalization",
+      "category": "Taskbar",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\TaskbarDeveloperSettings",
+          "name": "TaskbarEndTask",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "HideCopilotButton",
+      "name": "Hide the Copilot button",
+      "description": "Removes the Copilot button from the taskbar (Windows 11).",
+      "tab": "Personalization",
+      "category": "Taskbar",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "ShowCopilotButton",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "BatteryPercentage",
+      "name": "Show battery percentage",
+      "description": "Shows the battery percentage next to the battery icon in the system tray.",
+      "tab": "Personalization",
+      "category": "Taskbar",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "IsBatteryPercentageEnabled",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableSnapSuggestions",
+      "name": "Turn off snap layout suggestions",
+      "description": "Turns off the snap layout popup and the suggestions that appear after you snap a window.",
+      "tab": "Personalization",
+      "category": "Windows",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "SnapAssist",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "EnableSnapAssistFlyout",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "DisableWindowSnapping",
+      "name": "Turn off window snapping",
+      "description": "Stops windows from snapping when you drag them to a screen edge.",
+      "tab": "Personalization",
+      "category": "Windows",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Control Panel\\Desktop",
+          "name": "WindowArrangementActive",
+          "type": "String",
+          "appliedValue": "0",
+          "defaultValue": "1"
+        }
+      ]
+    },
+    {
+      "id": "DisableStickyKeysPrompt",
+      "name": "Turn off Sticky Keys pop-ups",
+      "description": "Stops the Sticky Keys, Filter Keys and Toggle Keys prompts that appear when you tap Shift five times or hold a key down.",
+      "tab": "Personalization",
+      "category": "Input",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Control Panel\\Accessibility\\StickyKeys",
+          "name": "Flags",
+          "type": "String",
+          "appliedValue": "58",
+          "defaultValue": "506"
+        },
+        {
+          "path": "HKCU:\\Control Panel\\Accessibility\\Keyboard Response",
+          "name": "Flags",
+          "type": "String",
+          "appliedValue": "122",
+          "defaultValue": "126"
+        },
+        {
+          "path": "HKCU:\\Control Panel\\Accessibility\\ToggleKeys",
+          "name": "Flags",
+          "type": "String",
+          "appliedValue": "58",
+          "defaultValue": "62"
+        }
+      ]
+    },
+    {
+      "id": "DisableMouseAcceleration",
+      "name": "Turn off mouse acceleration",
+      "description": "Turns off 'Enhance pointer precision' so the cursor travels the same distance for the same hand movement.",
+      "tab": "Personalization",
+      "category": "Input",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Control Panel\\Mouse",
+          "name": "MouseSpeed",
+          "type": "String",
+          "appliedValue": "0",
+          "defaultValue": "1"
+        },
+        {
+          "path": "HKCU:\\Control Panel\\Mouse",
+          "name": "MouseThreshold1",
+          "type": "String",
+          "appliedValue": "0",
+          "defaultValue": "6"
+        },
+        {
+          "path": "HKCU:\\Control Panel\\Mouse",
+          "name": "MouseThreshold2",
+          "type": "String",
+          "appliedValue": "0",
+          "defaultValue": "10"
+        }
+      ]
+    },
+    {
+      "id": "NumLockOnStartup",
+      "name": "Turn Num Lock on at sign-in",
+      "description": "Turns Num Lock on whenever you sign in.",
+      "tab": "Personalization",
+      "category": "Input",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Control Panel\\Keyboard",
+          "name": "InitialKeyboardIndicators",
+          "type": "String",
+          "appliedValue": "2",
+          "defaultValue": "0"
+        }
+      ]
+    },
+    {
+      "id": "DetailedBsod",
+      "name": "Show details on the blue screen",
+      "description": "Shows the technical error details on a blue screen instead of only the sad face.",
+      "tab": "Personalization",
+      "category": "System (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CrashControl",
+          "name": "DisplayParameters",
+          "type": "DWord",
+          "appliedValue": 1,
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "id": "VerboseLogon",
+      "name": "Show detailed messages at sign-in",
+      "description": "Shows what Windows is doing while it signs you in, shuts down, or restarts.",
+      "tab": "Personalization",
+      "category": "System (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+          "name": "VerboseStatus",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableLoginBlur",
+      "name": "Remove the sign-in screen blur",
+      "description": "Turns off the acrylic blur behind the sign-in screen.",
+      "tab": "Personalization",
+      "category": "System (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+          "name": "DisableAcrylicBackgroundOnLogon",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableLockScreen",
+      "name": "Skip the lock screen",
+      "description": "Goes straight to the sign-in screen. Windows Home may ignore this policy.",
+      "tab": "Personalization",
+      "category": "System (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization",
+          "name": "NoLockScreen",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "HideSettingsHome",
+      "name": "Hide the Settings home page",
+      "description": "Hides the Home page in the Settings app.",
+      "tab": "Personalization",
+      "category": "System (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
+          "name": "SettingsPageVisibility",
+          "type": "String",
+          "appliedValue": "hide:home",
+          "removeOnRevert": true
+        }
+      ]
+    }
+  ]
+}

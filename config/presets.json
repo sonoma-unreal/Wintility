@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "presets": [
+    {
+      "name": "Performance",
+      "description": "Conservative performance settings. Nothing here removes features.",
+      "settings": ["DisableTransparency", "DisableBackgroundApps"]
+    },
+    {
+      "name": "Privacy",
+      "description": "Limits ad personalization. Does not disable telemetry.",
+      "settings": ["DisableAdvertisingId", "DisableTailoredExperiences"]
+    },
+    {
+      "name": "Gaming",
+      "description": "Gaming-oriented settings. Each one has a cost, shown in its description.",
+      "settings": ["EnableHardwareGpuScheduling", "DisableGameDvr"]
+    }
+  ]
+}

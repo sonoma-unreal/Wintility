@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "settings": [
+    {
+      "id": "HideStartRecommendations",
+      "name": "Hide Start menu recommendations",
+      "description": "Hides the Recommended section content in Start and stops tracking recently opened files for it (Windows 11).",
+      "tab": "Debloat",
+      "category": "Start menu",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "Start_IrisRecommendations",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "name": "Start_TrackDocs",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "DisableSearchWebSuggestions",
+      "name": "Remove web results from Start search",
+      "description": "Stops web results and suggestions from appearing in the Start menu search box.",
+      "tab": "Debloat",
+      "category": "Search",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Windows\\Explorer",
+          "name": "DisableSearchBoxSuggestions",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
+          "name": "BingSearchEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "TurnOffSearchHighlights",
+      "name": "Turn off search highlights",
+      "description": "Removes the daily illustrations and trending items from the search box.",
+      "tab": "Debloat",
+      "category": "Search",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings",
+          "name": "IsDynamicSearchBoxEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "TurnOffCloudSearch",
+      "name": "Turn off cloud account results in search",
+      "description": "Stops search from showing results from your Microsoft and work or school accounts.",
+      "tab": "Debloat",
+      "category": "Search",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings",
+          "name": "IsAADCloudSearchEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        },
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings",
+          "name": "IsMSACloudSearchEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "DisableCopilotPolicy",
+      "name": "Turn off Windows Copilot",
+      "description": "Turns off the Windows Copilot policy for your account. The newer standalone Copilot app is not affected.",
+      "tab": "Debloat",
+      "category": "AI",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot",
+          "name": "TurnOffWindowsCopilot",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableToastNotifications",
+      "name": "Turn off app notification pop-ups",
+      "description": "Stops notification pop-ups from apps. You will miss alerts and reminders until you turn this back on.",
+      "tab": "Debloat",
+      "category": "Notifications",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": false,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
+          "name": "ToastEnabled",
+          "type": "DWord",
+          "appliedValue": 0,
+          "defaultValue": 1
+        }
+      ]
+    },
+    {
+      "id": "DisableConsumerFeatures",
+      "name": "Stop auto-installing suggested apps",
+      "description": "Stops Windows from adding suggested apps and promoted games for every user. Apps you already have are not touched.",
+      "tab": "Debloat",
+      "category": "Suggested apps (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
+          "name": "DisableWindowsConsumerFeatures",
+          "type": "DWord",
+          "appliedValue": 1,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableCortana",
+      "name": "Turn off Cortana",
+      "description": "Turns off the Cortana assistant through policy. Voice and search features that depend on it stop working.",
+      "tab": "Debloat",
+      "category": "Search (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
+          "name": "AllowCortana",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableWidgetsPolicy",
+      "name": "Turn off Widgets",
+      "description": "Turns off the Widgets board through policy (Windows 11).",
+      "tab": "Debloat",
+      "category": "Taskbar (needs administrator)",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": false,
+      "requiresLogoff": false,
+      "requiresExplorerRestart": true,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Dsh",
+          "name": "AllowNewsAndInterests",
+          "type": "DWord",
+          "appliedValue": 0,
+          "removeOnRevert": true
+        }
+      ]
+    },
+    {
+      "id": "DisableDiagTrackService",
+      "name": "Stop the telemetry service from starting",
+      "description": "Sets the DiagTrack service start type to Disabled. The service stays installed and the change takes effect after a restart.",
+      "tab": "Debloat",
+      "category": "Telemetry (needs administrator)",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": true,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\DiagTrack",
+          "name": "Start",
+          "type": "DWord",
+          "appliedValue": 4,
+          "defaultValue": 2
+        }
+      ]
+    }
+  ]
+}
