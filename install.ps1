@@ -14,7 +14,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Version = 'wintility-5.2-fall-update'
+$Version = 'wintility-5.2-fall-update-hotfix'
 $Repository = 'sonoma-unreal/Wintility'
 $ExpectedSha256 = '9b622f0b3c2a4b73dd6ec3de9a5f633d240b08da0ac8f9738c61eb61232b51b4'
 
