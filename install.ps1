@@ -45,6 +45,8 @@ $RequiredFiles = @(
     'commands\Wintility.Settings.psm1'
     'commands\Wintility.Shell.psm1'
     'commands\Wintility.SystemInfo.psm1'
+    'commands\Wintility.Network.psm1'
+    'commands\Wintility.Maintenance.psm1'
     'config\ads.json'
     'config\debloat.json'
     'config\internet.json'
@@ -55,6 +57,7 @@ $RequiredFiles = @(
     'config\storage.json'
     'core\Wintility.Core.psm1'
     'ui\MainWindow.xaml'
+    'ui\CustomDnsDialog.xaml'
     'ui\SplashWindow.xaml'
     'ui\Wintility.UI.psm1'
 )

@@ -1,0 +1,19 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Custom DNS" Width="520" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Background="{DynamicResource WinBrush}"
+        Foreground="{DynamicResource TextBrush}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="13">
+  <StackPanel Margin="24">
+    <TextBlock Text="Custom DNS" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
+    <TextBlock Text="Enter IPv4 and/or IPv6 resolver addresses, separated by commas. Include both address families if your network uses both. For encrypted DNS, add the provider's HTTPS template and enable DNS over HTTPS in the Internet tab." TextWrapping="Wrap" Margin="0,6,0,18" Foreground="{DynamicResource SubBrush}"/>
+    <TextBlock Text="DNS server addresses" Margin="0,0,0,5" Foreground="{DynamicResource SubBrush}"/>
+    <TextBox x:Name="CustomDnsServersBox" MinHeight="36" Padding="9,7" Background="{DynamicResource BtnBrush}" Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource DividerBrush}"/>
+    <TextBlock Text="DNS-over-HTTPS template (optional)" Margin="0,14,0,5" Foreground="{DynamicResource SubBrush}"/>
+    <TextBox x:Name="CustomDnsDohTemplateBox" MinHeight="36" Padding="9,7" Background="{DynamicResource BtnBrush}" Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource DividerBrush}"/>
+    <TextBlock Text="Use an HTTPS URI such as https://resolver.example/dns-query. Wintility does not send DNS queries to validate custom servers." TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12" Foreground="{DynamicResource SubBrush}"/>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+      <Button x:Name="CustomDnsCancelButton" Content="Cancel" Width="100" Margin="0,0,8,0" Style="{DynamicResource ActionButton}"/>
+      <Button x:Name="CustomDnsSaveButton" Content="Use these servers" Width="150" IsDefault="True" Style="{DynamicResource AccentButton}"/>
+    </StackPanel>
+  </StackPanel>
+</Window>

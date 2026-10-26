@@ -265,6 +265,102 @@
           "defaultValue": 2
         }
       ]
+    },
+    {
+      "id": "DisableSysMainService",
+      "name": "Disable SysMain preloading",
+      "description": "Stops background app and file preloading. This can help some systems, but may slow app launches on PCs that benefit from SysMain. Takes effect after restart.",
+      "tab": "Debloat",
+      "category": "Optional services (needs administrator)",
+      "icon": "Gauge",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": true,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\SysMain",
+          "name": "Start",
+          "type": "DWord",
+          "appliedValue": 4,
+          "defaultValue": 2
+        }
+      ]
+    },
+    {
+      "id": "DisableWindowsSearchService",
+      "name": "Disable Windows Search indexing",
+      "description": "Stops background indexing. Start menu and File Explorer searches still work, but results may take longer and indexed search features are reduced. Takes effect after restart.",
+      "tab": "Debloat",
+      "category": "Optional services (needs administrator)",
+      "icon": "SearchX",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": true,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WSearch",
+          "name": "Start",
+          "type": "DWord",
+          "appliedValue": 4,
+          "defaultValue": 2
+        }
+      ]
+    },
+    {
+      "id": "DisableMapsBrokerService",
+      "name": "Disable offline maps service",
+      "description": "Stops the service that manages downloaded offline maps. Keep it enabled if you use offline maps or location features that depend on them. Takes effect after restart.",
+      "tab": "Debloat",
+      "category": "Optional services (needs administrator)",
+      "icon": "MapPinOff",
+      "risk": "Low",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": true,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\MapsBroker",
+          "name": "Start",
+          "type": "DWord",
+          "appliedValue": 4,
+          "defaultValue": 3
+        }
+      ]
+    },
+    {
+      "id": "DisableWindowsErrorReportingService",
+      "name": "Disable Windows Error Reporting",
+      "description": "Stops Windows from collecting and sending error reports. This can make crash diagnosis harder. Takes effect after restart.",
+      "tab": "Debloat",
+      "category": "Optional services (needs administrator)",
+      "icon": "BugOff",
+      "risk": "Medium",
+      "action": "registry",
+      "requiresAdmin": true,
+      "requiresRestart": true,
+      "requiresLogoff": false,
+      "reversible": true,
+      "enabledByDefault": false,
+      "registry": [
+        {
+          "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WerSvc",
+          "name": "Start",
+          "type": "DWord",
+          "appliedValue": 4,
+          "defaultValue": 3
+        }
+      ]
     }
   ]
 }

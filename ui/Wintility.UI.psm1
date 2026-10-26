@@ -14,6 +14,8 @@ Import-Module -Name (Join-Path $PSScriptRoot '..\commands\Wintility.Personalizat
 Import-Module -Name (Join-Path $PSScriptRoot '..\commands\Wintility.SystemInfo.psm1')
 Import-Module -Name (Join-Path $PSScriptRoot '..\commands\Wintility.Shell.psm1')
 Import-Module -Name (Join-Path $PSScriptRoot '..\commands\Wintility.Power.psm1')
+Import-Module -Name (Join-Path $PSScriptRoot '..\commands\Wintility.Network.psm1')
+Import-Module -Name (Join-Path $PSScriptRoot '..\commands\Wintility.Maintenance.psm1')
 
 $script:RootPath = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $script:Ui = @{}
@@ -30,6 +32,8 @@ $script:AnimationsOn = $true
 $script:LastResults = @{}
 $script:TweakSettings = $null
 $script:PowerState = $null
+$script:CustomDnsConfig = $null
+$script:LastDnsProviderTag = 'Automatic'
 $script:ShellTimer = $null
 $script:ShellJob = $null
 $script:ShellRefreshAgain = $false
@@ -98,6 +102,127 @@ function Get-ResultText {
     if ($Result.Error) { $text = $Result.Error }
     if ($Result.Warning) { $text += " Note: $($Result.Warning)" }
     return $text
+}
+
+function Update-DnsAdapterList {
+    try {
+        $previousIndex = $null
+        if ($script:Ui.DnsAdapterCombo.SelectedItem) { $previousIndex = [uint32]$script:Ui.DnsAdapterCombo.SelectedItem.InterfaceIndex }
+        $adapters = @(Get-WintilityNetworkAdapters)
+        $script:Ui.DnsAdapterCombo.ItemsSource = $null
+        $script:Ui.DnsAdapterCombo.ItemsSource = $adapters
+        $selected = $null
+        if ($null -ne $previousIndex) { $selected = @($adapters | Where-Object { $_.InterfaceIndex -eq $previousIndex } | Select-Object -First 1)[0] }
+        if ($null -eq $selected -and $adapters.Count -gt 0) { $selected = $adapters[0] }
+        $script:Ui.DnsAdapterCombo.SelectedItem = $selected
+        if ($adapters.Count -eq 0) { $script:Ui.DnsStatusText.Text = 'No connected network adapters were found.' }
+        else { Update-DnsAdapterSummary }
+    }
+    catch {
+        $script:Ui.DnsStatusText.Text = "Network adapter details are unavailable: $($_.Exception.Message)"
+    }
+}
+
+function Update-DnsAdapterSummary {
+    $adapter = $script:Ui.DnsAdapterCombo.SelectedItem
+    if ($null -eq $adapter) { return }
+    $dns = @($adapter.DnsServers)
+    if ($dns.Count -gt 0) { $dnsText = $dns -join ', ' }
+    else { $dnsText = 'No DNS server currently reported' }
+    $script:Ui.DnsStatusText.Text = "$($adapter.InterfaceAlias)  ·  DNS: $dnsText"
+}
+
+function Show-CustomDnsDialog {
+    $dialog = Read-UiXaml -FileName 'CustomDnsDialog.xaml'
+    $dialog.Owner = $script:Window
+    $dialog.Resources.MergedDictionaries.Add($script:Window.Resources)
+    $serversBox = $dialog.FindName('CustomDnsServersBox')
+    $templateBox = $dialog.FindName('CustomDnsDohTemplateBox')
+    $cancelButton = $dialog.FindName('CustomDnsCancelButton')
+    $saveButton = $dialog.FindName('CustomDnsSaveButton')
+    if ($script:CustomDnsConfig) {
+        $serversBox.Text = @($script:CustomDnsConfig.Servers) -join ', '
+        $templateBox.Text = [string]$script:CustomDnsConfig.DohTemplate
+    }
+    $saveButton.Add_Click({
+        try {
+            $servers = @(ConvertTo-WintilityDnsServerList -ServerAddresses @([string]$serversBox.Text))
+            $template = [string]$templateBox.Text
+            if ($template -and ($template -notmatch '^https://[^\s]+$')) { throw 'The DNS-over-HTTPS template must be a valid HTTPS URL.' }
+            $script:CustomDnsDialogResult = [PSCustomObject]@{ Servers = $servers; DohTemplate = $template }
+            $dialog.DialogResult = $true
+            $dialog.Close()
+        }
+        catch {
+            [System.Windows.MessageBox]::Show(
+                $dialog,
+                $_.Exception.Message,
+                'Custom DNS',
+                [System.Windows.MessageBoxButton]::OK,
+                [System.Windows.MessageBoxImage]::Warning
+            ) | Out-Null
+        }
+    }.GetNewClosure())
+    $cancelButton.Add_Click({ $dialog.DialogResult = $false; $dialog.Close() }.GetNewClosure())
+    $script:CustomDnsDialogResult = $null
+    if ($dialog.ShowDialog() -and $script:CustomDnsDialogResult) { return $script:CustomDnsDialogResult }
+    return $null
+}
+
+function Update-DnsPermissions {
+    $allowed = [bool]$script:IsAdmin
+    $script:Ui.ApplyDnsButton.IsEnabled = $allowed
+    $script:Ui.ResetDnsButton.IsEnabled = $allowed
+    $script:Ui.FlushDnsButton.IsEnabled = $allowed
+    $script:Ui.DnsAdminNote.Visibility = if ($allowed) { 'Collapsed' } else { 'Visible' }
+}
+
+function Invoke-ApplyDnsSelection {
+    $adapter = $script:Ui.DnsAdapterCombo.SelectedItem
+    if ($null -eq $adapter) { throw 'Select a connected network adapter first.' }
+    $providerItem = $script:Ui.DnsProviderCombo.SelectedItem
+    $provider = [string]$providerItem.Tag
+    if ($provider -eq 'Automatic') {
+        $result = Reset-WintilityDnsProvider -InterfaceIndex ([uint32]$adapter.InterfaceIndex)
+    }
+    else {
+        $params = @{
+            InterfaceIndex = [uint32]$adapter.InterfaceIndex
+            Provider = $provider
+            DnsOverHttps = [bool]$script:Ui.DnsDohCheckBox.IsChecked
+        }
+        if ($provider -eq 'Custom') {
+            if (-not $script:CustomDnsConfig) { throw 'Choose Custom DNS and enter its server addresses first.' }
+            $params.ServerAddresses = @($script:CustomDnsConfig.Servers)
+            $params.DohTemplate = [string]$script:CustomDnsConfig.DohTemplate
+        }
+        $result = Set-WintilityDnsProvider @params
+    }
+    Update-DnsAdapterList
+    $script:Ui.DnsStatusText.Text = Get-ResultText -Result $result
+    Set-UiStatus $result.Message
+}
+
+function Update-MaintenancePanel {
+    $startupDisabled = Get-WintilityStartupAppsDisabled
+    $script:Ui.StartupAppsToggle.IsChecked = $startupDisabled
+    if ($startupDisabled) { $script:Ui.StartupAppsStatusText.Text = 'Classic startup entries are disabled and can be restored with this switch.' }
+    else { $script:Ui.StartupAppsStatusText.Text = 'This affects Run/RunOnce entries and the Startup folder for this account.' }
+
+    try {
+        $compression = Get-WintilityMemoryCompressionState
+        $script:Ui.MemoryCompressionBox.IsChecked = $compression
+        $script:Ui.MemoryCompressionBox.IsEnabled = [bool]$script:IsAdmin
+        if ($script:IsAdmin) {
+            if ($compression) { $script:Ui.MemoryCompressionStatusText.Text = 'Enabled. Windows compresses some inactive memory pages when useful.' }
+            else { $script:Ui.MemoryCompressionStatusText.Text = 'Disabled. Enabling it may reduce memory pressure.' }
+        }
+        else { $script:Ui.MemoryCompressionStatusText.Text = 'Changing this Windows setting requires administrator access.' }
+    }
+    catch {
+        $script:Ui.MemoryCompressionBox.IsEnabled = $false
+        $script:Ui.MemoryCompressionStatusText.Text = 'Memory compression controls are unavailable on this Windows installation.'
+    }
 }
 
 function Invoke-UiAction {
@@ -1113,6 +1238,89 @@ function Connect-UiEvents {
     $script:Ui.LogButton.Add_Click({ Invoke-UiAction { Switch-LogView } })
     $script:Ui.RefreshLogButton.Add_Click({ Invoke-UiAction { Update-LogViewer } })
     $script:Ui.LogDoneButton.Add_Click({ Invoke-UiAction { Switch-LogView } })
+    $script:Ui.DnsAdapterCombo.Add_SelectionChanged({ Invoke-UiAction { Update-DnsAdapterSummary } })
+    $script:Ui.RefreshDnsAdaptersButton.Add_Click({ Invoke-UiAction { Update-DnsAdapterList } })
+    $script:Ui.DnsProviderCombo.Add_SelectionChanged({
+        param($sender, $e)
+        if ($e.OriginalSource -ne $sender -or $null -eq $sender.SelectedItem) { return }
+        $tag = [string]$sender.SelectedItem.Tag
+        $script:Ui.DnsDohCheckBox.IsEnabled = ($tag -ne 'Automatic')
+        if ($tag -eq 'Custom') {
+            Invoke-UiAction {
+                $custom = Show-CustomDnsDialog
+                if ($custom) {
+                    $script:CustomDnsConfig = $custom
+                    $script:LastDnsProviderTag = 'Custom'
+                    $script:Ui.DnsStatusText.Text = "Custom DNS: $(@($custom.Servers) -join ', ')"
+                }
+                else {
+                    $restore = @($sender.Items | Where-Object { $_.Tag -eq $script:LastDnsProviderTag } | Select-Object -First 1)[0]
+                    if ($restore) { $sender.SelectedItem = $restore }
+                }
+            }
+        }
+        else { $script:LastDnsProviderTag = $tag }
+    })
+    $script:Ui.ApplyDnsButton.Add_Click({ Invoke-UiAction { Invoke-ApplyDnsSelection } })
+    $script:Ui.ResetDnsButton.Add_Click({
+        Invoke-UiAction {
+            $adapter = $script:Ui.DnsAdapterCombo.SelectedItem
+            if ($null -eq $adapter) { throw 'Select a connected network adapter first.' }
+            $result = Reset-WintilityDnsProvider -InterfaceIndex ([uint32]$adapter.InterfaceIndex)
+            Update-DnsAdapterList
+            $script:Ui.DnsStatusText.Text = Get-ResultText -Result $result
+            Set-UiStatus $result.Message
+        }
+    })
+    $script:Ui.FlushDnsButton.Add_Click({
+        Invoke-UiAction {
+            $result = Clear-WintilityDnsCache
+            $script:Ui.DnsStatusText.Text = Get-ResultText -Result $result
+            Set-UiStatus $result.Message
+        }
+    })
+    $script:Ui.StartupAppsToggle.Add_Click({
+        param($sender, $e)
+        Invoke-UiAction {
+            $disable = [bool]$sender.IsChecked
+            if ($disable) {
+                $answer = [System.Windows.MessageBox]::Show(
+                    $script:Window,
+                    'Disable classic Run/RunOnce and Startup-folder entries for this account? Wintility saves a restore copy. Running apps are not closed.',
+                    'Disable startup apps',
+                    [System.Windows.MessageBoxButton]::YesNo,
+                    [System.Windows.MessageBoxImage]::Question
+                )
+                if ($answer -ne [System.Windows.MessageBoxResult]::Yes) { $sender.IsChecked = $false; return }
+            }
+            try {
+                $result = Set-WintilityStartupAppsDisabled -Disabled $disable
+                $sender.IsChecked = Get-WintilityStartupAppsDisabled
+                $script:Ui.StartupAppsStatusText.Text = $result.Message
+                Set-UiStatus $result.Message
+            }
+            catch {
+                $sender.IsChecked = Get-WintilityStartupAppsDisabled
+                throw
+            }
+        }
+    })
+    $script:Ui.MemoryCompressionBox.Add_Click({
+        param($sender, $e)
+        Invoke-UiAction {
+            try {
+                $result = Set-WintilityMemoryCompression -Enabled ([bool]$sender.IsChecked)
+                $script:Ui.MemoryCompressionStatusText.Text = $result.Message
+                Set-UiStatus $result.Message
+            }
+            catch {
+                try { $sender.IsChecked = Get-WintilityMemoryCompressionState } catch { $sender.IsChecked = $false }
+                throw
+            }
+        }
+    })
+    $script:Ui.OpenStartupSettingsButton.Add_Click({ Invoke-UiAction { Start-Process -FilePath 'ms-settings:startup' } })
+    $script:Ui.OpenDriveOptimizerButton.Add_Click({ Invoke-UiAction { Open-WintilityDriveOptimizer } })
     $script:Ui.MainTabs.ApplyTemplate()
     if ($script:Ui.MainTabs.SelectedIndex -lt 0) { $script:Ui.MainTabs.SelectedIndex = 0 }
     $script:LastTabIndex = $null
@@ -1306,7 +1514,7 @@ function Initialize-WintilityWindow {
     $script:Window.Title = "$($Version.Product) $($Version.Version) $($Version.Edition)"
     Set-UiFont -Window $script:Window
     Import-UiIcons
-    $names = @('RootGrid','MainContent','StartupOverlay','SplashBackground','SplashProgressPanel','SplashBar','SplashStatus','SplashVersion','SplashLaunchPanel','LaunchButton','BackgroundImage','AdminText','GearButton','LogButton','CloseButton','MinimizeButton','MaximizeButton','HomeClock','HomeTitle','HomeEdition','MainTabs','SettingsView','SettingsDoneButton','LogView','LogLocationText','LogText','RefreshLogButton','LogDoneButton','ElevateCard','ElevateNote','ElevateButton','RestartExplorerButton','PowerActiveText','PowerSaverBox','PowerSaverTitle','PowerSaverDesc','PowerSaverStatus','PowerBalancedBox','PowerBalancedTitle','PowerBalancedDesc','PowerBalancedStatus','PowerSaverIcon','PowerBalancedIcon','PowerHighIcon','PowerHighBox','PowerHighTitle','PowerHighDesc','PowerHighStatus','PowerHighWarning','RestorePowerButton','RestoreBackupButton','ChooseWallpaperButton','WallpaperPreview','WallpaperInfoText','ApplyWallpaperButton','RestoreWallpaperButton','LightModeButton','DarkModeButton','ModeText','AccentPanel','AccentText','ApplyAccentButton','FollowSystemRadio','LightRadio','DarkRadio','ShowBackgroundBox','GlassBox','GlassNote','AnimationsBox','SystemInfoPanel','RefreshInfoButton','ClaudeLink','CodexCreditIcon','VersionText','StatusText')
+    $names = @('RootGrid','MainContent','StartupOverlay','SplashBackground','SplashProgressPanel','SplashBar','SplashStatus','SplashVersion','SplashLaunchPanel','LaunchButton','BackgroundImage','AdminText','GearButton','LogButton','CloseButton','MinimizeButton','MaximizeButton','HomeClock','HomeTitle','HomeEdition','MainTabs','SettingsView','SettingsDoneButton','LogView','LogLocationText','LogText','RefreshLogButton','LogDoneButton','DnsAdapterCombo','DnsProviderCombo','DnsDohCheckBox','DnsAdminNote','DnsStatusText','RefreshDnsAdaptersButton','ApplyDnsButton','ResetDnsButton','FlushDnsButton','StartupAppsToggle','StartupAppsStatusText','OpenStartupSettingsButton','MemoryCompressionBox','MemoryCompressionStatusText','OpenDriveOptimizerButton','ElevateCard','ElevateNote','ElevateButton','RestartExplorerButton','PowerActiveText','PowerSaverBox','PowerSaverTitle','PowerSaverDesc','PowerSaverStatus','PowerBalancedBox','PowerBalancedTitle','PowerBalancedDesc','PowerBalancedStatus','PowerSaverIcon','PowerBalancedIcon','PowerHighIcon','PowerHighBox','PowerHighTitle','PowerHighDesc','PowerHighStatus','PowerHighWarning','RestorePowerButton','RestoreBackupButton','ChooseWallpaperButton','WallpaperPreview','WallpaperInfoText','ApplyWallpaperButton','RestoreWallpaperButton','LightModeButton','DarkModeButton','ModeText','AccentPanel','AccentText','ApplyAccentButton','FollowSystemRadio','LightRadio','DarkRadio','ShowBackgroundBox','GlassBox','GlassNote','AnimationsBox','SystemInfoPanel','RefreshInfoButton','ClaudeLink','CodexCreditIcon','VersionText','StatusText')
     foreach ($tab in $script:TabNames) { $names += "Panel_$tab" }
     $script:Ui = Get-UiControlMap -Root $script:Window -Names $names
     $script:Window.MinWidth = [math]::Min($script:Window.MinWidth, [System.Windows.SystemParameters]::WorkArea.Width)
@@ -1388,6 +1596,9 @@ function Show-WintilityWindow {
     $script:StartupQueue.Enqueue([PSCustomObject]@{ Percent = 54; Text = 'Preparing settings panels...'; Tab = $null; Action = {
         Initialize-AccentSwatches
         Update-PowerView
+        Update-DnsAdapterList
+        Update-DnsPermissions
+        Update-MaintenancePanel
     }})
     $tabIndex = 0
     foreach ($tabName in $script:TabNames) {

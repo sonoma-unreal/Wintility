@@ -30,6 +30,8 @@ Every tab uses the same layout as Settings: a page header, labelled sections, an
 
 Personalization, Performance, Power, Ads, Privacy, Internet, Storage, Debloat, System Information and Credits. Tweaks are grouped by category inside each tab. Every tweak shows its risk level and whether it needs a sign-out, a restart, or a File Explorer restart.
 
+The Internet tab includes Windows and Edge network tweaks, DNS selection for a connected adapter (Cloudflare, Google, Quad9, AdGuard, or custom IPv4/IPv6 servers), optional native DNS-over-HTTPS setup on supported Windows versions, DHCP DNS restore, and DNS cache flushing. Applying DNS changes requires administrator access.
+
 ## How a tweak behaves
 
 - **Switch on:** backs up the current values, writes the new ones, reads each back to confirm. If any value fails, everything is rolled back.

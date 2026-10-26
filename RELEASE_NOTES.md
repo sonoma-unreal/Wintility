@@ -6,6 +6,7 @@
 - Refined the interface with animated switches, themed rounded scrollbars, directional tab transitions, and corrected icon geometry. Public Windows checkouts use the native Segoe UI Variable fallback; local SF Pro files are excluded from Git because their license does not allow bundling in this Windows app.
 - Added a toolbar log viewer, removed the bottom status strip, and added a Codex credit with its supplied icon.
 - Fixed Power plan detection when `powercfg /list` begins with an empty line.
+- Added per-adapter DNS selection for Cloudflare, Google, Quad9, AdGuard, and custom IPv4/IPv6 resolvers, optional native DNS-over-HTTPS, automatic DHCP restore, and DNS cache flushing.
 
 ## Verification
 
