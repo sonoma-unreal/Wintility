@@ -43,21 +43,6 @@ function Get-WintilityNetworkAdapters {
     }
 }
 
-function ConvertTo-WintilityDnsServerList {
-    [CmdletBinding()]
-    param([Parameter(Mandatory)][string[]]$ServerAddresses)
-
-    $servers = @($ServerAddresses | ForEach-Object { $_ -split '[,;\s]+' } | Where-Object { $_ })
-    if ($servers.Count -eq 0) { throw 'Enter at least one DNS server address.' }
-    foreach ($server in $servers) {
-        $parsed = $null
-        if (-not [System.Net.IPAddress]::TryParse($server, [ref]$parsed)) {
-            throw "'$server' is not a valid IPv4 or IPv6 address. Enter IP addresses separated by commas."
-        }
-    }
-    return @($servers | Select-Object -Unique)
-}
-
 function Set-WintilityDnsOverHttps {
     param([Parameter(Mandatory)][string[]]$ServerAddresses, [AllowEmptyString()][string]$Template, [Parameter(Mandatory)][bool]$Enabled)
 
@@ -92,25 +77,17 @@ function Set-WintilityDnsProvider {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][uint32]$InterfaceIndex,
-        [Parameter(Mandatory)][ValidateSet('Cloudflare','Google','Quad9','AdGuard','Custom')][string]$Provider,
-        [string[]]$ServerAddresses,
-        [bool]$DnsOverHttps = $false,
-        [string]$DohTemplate
+        [Parameter(Mandatory)][ValidateSet('Cloudflare','Google','Quad9','AdGuard')][string]$Provider,
+        [bool]$DnsOverHttps = $false
     )
 
     Assert-WintilityNetworkAdmin
     $adapter = Get-NetAdapter -InterfaceIndex $InterfaceIndex -ErrorAction Stop
     if ($adapter.Status -ne 'Up') { throw 'That network adapter is no longer connected. Refresh the adapter list and try again.' }
 
-    if ($Provider -eq 'Custom') {
-        $servers = @(ConvertTo-WintilityDnsServerList -ServerAddresses $ServerAddresses)
-        $template = $DohTemplate
-    }
-    else {
-        $providerInfo = $script:DnsProviders[$Provider]
-        $servers = @($providerInfo.Servers)
-        $template = $providerInfo.Doh
-    }
+    $providerInfo = $script:DnsProviders[$Provider]
+    $servers = @($providerInfo.Servers)
+    $template = $providerInfo.Doh
 
     $before = @(Get-DnsClientServerAddress -InterfaceIndex $InterfaceIndex -ErrorAction Stop | ForEach-Object { $_.ServerAddresses } | Where-Object { $_ } | Select-Object -Unique)
     if ($DnsOverHttps) { Set-WintilityDnsOverHttps -ServerAddresses $servers -Template $template -Enabled $true }
@@ -149,4 +126,4 @@ function Clear-WintilityDnsCache {
     return (New-WintilityResult -Id 'DnsFlush' -Name 'DNS cache' -Changed $true -Message 'Windows DNS resolver cache flushed.')
 }
 
-Export-ModuleMember -Function Get-WintilityNetworkAdapters, ConvertTo-WintilityDnsServerList, Set-WintilityDnsProvider, Reset-WintilityDnsProvider, Clear-WintilityDnsCache
+Export-ModuleMember -Function Get-WintilityNetworkAdapters, Set-WintilityDnsProvider, Reset-WintilityDnsProvider, Clear-WintilityDnsCache

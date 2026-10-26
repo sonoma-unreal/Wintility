@@ -32,8 +32,6 @@ $script:AnimationsOn = $true
 $script:LastResults = @{}
 $script:TweakSettings = $null
 $script:PowerState = $null
-$script:CustomDnsConfig = $null
-$script:LastDnsProviderTag = 'Automatic'
 $script:ShellTimer = $null
 $script:ShellJob = $null
 $script:ShellRefreshAgain = $false
@@ -132,49 +130,31 @@ function Update-DnsAdapterSummary {
     $script:Ui.DnsStatusText.Text = "$($adapter.InterfaceAlias)  ·  DNS: $dnsText"
 }
 
-function Show-CustomDnsDialog {
-    $dialog = Read-UiXaml -FileName 'CustomDnsDialog.xaml'
-    $dialog.Owner = $script:Window
-    $dialog.Resources.MergedDictionaries.Add($script:Window.Resources)
-    $serversBox = $dialog.FindName('CustomDnsServersBox')
-    $templateBox = $dialog.FindName('CustomDnsDohTemplateBox')
-    $cancelButton = $dialog.FindName('CustomDnsCancelButton')
-    $saveButton = $dialog.FindName('CustomDnsSaveButton')
-    if ($script:CustomDnsConfig) {
-        $serversBox.Text = @($script:CustomDnsConfig.Servers) -join ', '
-        $templateBox.Text = [string]$script:CustomDnsConfig.DohTemplate
-    }
-    $saveButton.Add_Click({
-        try {
-            $servers = @(ConvertTo-WintilityDnsServerList -ServerAddresses @([string]$serversBox.Text))
-            $template = [string]$templateBox.Text
-            if ($template -and ($template -notmatch '^https://[^\s]+$')) { throw 'The DNS-over-HTTPS template must be a valid HTTPS URL.' }
-            $script:CustomDnsDialogResult = [PSCustomObject]@{ Servers = $servers; DohTemplate = $template }
-            $dialog.DialogResult = $true
-            $dialog.Close()
-        }
-        catch {
-            [System.Windows.MessageBox]::Show(
-                $dialog,
-                $_.Exception.Message,
-                'Custom DNS',
-                [System.Windows.MessageBoxButton]::OK,
-                [System.Windows.MessageBoxImage]::Warning
-            ) | Out-Null
-        }
-    }.GetNewClosure())
-    $cancelButton.Add_Click({ $dialog.DialogResult = $false; $dialog.Close() }.GetNewClosure())
-    $script:CustomDnsDialogResult = $null
-    if ($dialog.ShowDialog() -and $script:CustomDnsDialogResult) { return $script:CustomDnsDialogResult }
-    return $null
+function Update-DnsPermissions {
+    $script:Ui.ApplyDnsButton.IsEnabled = $true
+    $script:Ui.ResetDnsButton.IsEnabled = $true
+    $script:Ui.FlushDnsButton.IsEnabled = $true
+    if ($script:IsAdmin) { $script:Ui.DnsAdminNote.Text = 'DNS changes run with administrator access.' }
+    else { $script:Ui.DnsAdminNote.Text = 'DNS actions will ask for administrator permission.' }
 }
 
-function Update-DnsPermissions {
-    $allowed = [bool]$script:IsAdmin
-    $script:Ui.ApplyDnsButton.IsEnabled = $allowed
-    $script:Ui.ResetDnsButton.IsEnabled = $allowed
-    $script:Ui.FlushDnsButton.IsEnabled = $allowed
-    $script:Ui.DnsAdminNote.Visibility = if ($allowed) { 'Collapsed' } else { 'Visible' }
+function Invoke-DnsAdminHelper {
+    param(
+        [Parameter(Mandatory)][ValidateSet('Apply','Reset','Flush')][string]$Operation,
+        [uint32]$InterfaceIndex,
+        [string]$Provider,
+        [bool]$DnsOverHttps = $false
+    )
+    $helperPath = Join-Path $script:RootPath 'commands\Wintility.DnsAdmin.ps1'
+    $engine = Get-Command powershell.exe -ErrorAction Stop
+    $arguments = "-NoProfile -STA -ExecutionPolicy Bypass -File `"$helperPath`" -Operation $Operation"
+    if ($Operation -ne 'Flush') { $arguments += " -InterfaceIndex $InterfaceIndex" }
+    if ($Operation -eq 'Apply') {
+        $arguments += " -Provider $Provider"
+        if ($DnsOverHttps) { $arguments += ' -DnsOverHttps' }
+    }
+    Start-Process -FilePath $engine.Source -Verb RunAs -WindowStyle Hidden -ArgumentList $arguments | Out-Null
+    Set-UiStatus 'Waiting for administrator permission to apply the DNS action.'
 }
 
 function Invoke-ApplyDnsSelection {
@@ -183,20 +163,18 @@ function Invoke-ApplyDnsSelection {
     $providerItem = $script:Ui.DnsProviderCombo.SelectedItem
     $provider = [string]$providerItem.Tag
     if ($provider -eq 'Automatic') {
+        if (-not $script:IsAdmin) {
+            Invoke-DnsAdminHelper -Operation Reset -InterfaceIndex ([uint32]$adapter.InterfaceIndex)
+            return
+        }
         $result = Reset-WintilityDnsProvider -InterfaceIndex ([uint32]$adapter.InterfaceIndex)
     }
     else {
-        $params = @{
-            InterfaceIndex = [uint32]$adapter.InterfaceIndex
-            Provider = $provider
-            DnsOverHttps = [bool]$script:Ui.DnsDohCheckBox.IsChecked
+        if (-not $script:IsAdmin) {
+            Invoke-DnsAdminHelper -Operation Apply -InterfaceIndex ([uint32]$adapter.InterfaceIndex) -Provider $provider -DnsOverHttps ([bool]$script:Ui.DnsDohCheckBox.IsChecked)
+            return
         }
-        if ($provider -eq 'Custom') {
-            if (-not $script:CustomDnsConfig) { throw 'Choose Custom DNS and enter its server addresses first.' }
-            $params.ServerAddresses = @($script:CustomDnsConfig.Servers)
-            $params.DohTemplate = [string]$script:CustomDnsConfig.DohTemplate
-        }
-        $result = Set-WintilityDnsProvider @params
+        $result = Set-WintilityDnsProvider -InterfaceIndex ([uint32]$adapter.InterfaceIndex) -Provider $provider -DnsOverHttps ([bool]$script:Ui.DnsDohCheckBox.IsChecked)
     }
     Update-DnsAdapterList
     $script:Ui.DnsStatusText.Text = Get-ResultText -Result $result

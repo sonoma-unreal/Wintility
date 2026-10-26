@@ -68,6 +68,72 @@
       <Setter Property="Foreground" Value="#EAF6FF"/>
     </Style>
 
+    <Style x:Key="DnsComboItem" TargetType="ComboBoxItem">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Padding" Value="10,7"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="ItemSurface" CornerRadius="6" Padding="{TemplateBinding Padding}" Background="Transparent">
+              <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="ItemSurface" Property="Background" Value="{DynamicResource BoxBrush}"/></Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="ItemSurface" Property="Background" Value="#CC1B4B78"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="DnsComboBox" TargetType="ComboBox">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource BtnBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="10,0,34,0"/>
+      <Setter Property="ItemContainerStyle" Value="{StaticResource DnsComboItem}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBox">
+            <Grid>
+              <Border x:Name="ComboSurface" CornerRadius="9" Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"/>
+              <ContentPresenter x:Name="SelectionPresenter" Margin="{TemplateBinding Padding}" IsHitTestVisible="False"
+                                Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                VerticalAlignment="Center" HorizontalAlignment="Left"/>
+              <ToggleButton Width="32" HorizontalAlignment="Right" Focusable="False" ClickMode="Press" Background="Transparent" BorderThickness="0"
+                            IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                <Path Data="M 0 0 L 4 4 L 8 0" Stroke="{DynamicResource SubBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </ToggleButton>
+              <Popup x:Name="DropDownPopup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="260"
+                        Margin="0,4,0,0" Padding="4" CornerRadius="9" Background="{DynamicResource BtnBrush}"
+                        BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" SnapsToDevicePixels="True">
+                  <ScrollViewer CanContentScroll="True" SnapsToDevicePixels="True">
+                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                  </ScrollViewer>
+                </Border>
+              </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ComboSurface" Property="BorderBrush" Value="#668BCBFF"/></Trigger>
+              <Trigger Property="IsDropDownOpen" Value="True"><Setter TargetName="ComboSurface" Property="BorderBrush" Value="#668BCBFF"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ComboSurface" Property="Opacity" Value="0.48"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <DataTemplate x:Key="NetworkAdapterComboTemplate">
+      <TextBlock Text="{Binding InterfaceAlias}" Foreground="{DynamicResource TextBrush}"/>
+    </DataTemplate>
+
     <Style x:Key="StartupLaunchButton" TargetType="Button">
       <Setter Property="Background" Value="#1B4B78"/>
       <Setter Property="Foreground" Value="#EAF6FF"/>
@@ -772,11 +838,11 @@
                   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                   <StackPanel>
                     <TextBlock Text="Network adapter" FontSize="12" Margin="0,0,0,4" Foreground="{DynamicResource SubBrush}"/>
-                    <ComboBox x:Name="DnsAdapterCombo" MinHeight="34" DisplayMemberPath="InterfaceAlias"/>
+                    <ComboBox x:Name="DnsAdapterCombo" MinHeight="36" ItemTemplate="{StaticResource NetworkAdapterComboTemplate}" Style="{StaticResource DnsComboBox}"/>
                   </StackPanel>
                   <StackPanel Grid.Column="2">
                     <TextBlock Text="DNS provider" FontSize="12" Margin="0,0,0,4" Foreground="{DynamicResource SubBrush}"/>
-                    <ComboBox x:Name="DnsProviderCombo" MinHeight="34" SelectedIndex="0">
+                    <ComboBox x:Name="DnsProviderCombo" MinHeight="36" SelectedIndex="0" Style="{StaticResource DnsComboBox}">
                       <ComboBoxItem Content="Automatic (DHCP)" Tag="Automatic"/>
                       <ComboBoxItem Content="Cloudflare" Tag="Cloudflare"/>
                       <ComboBoxItem Content="Google" Tag="Google"/>
