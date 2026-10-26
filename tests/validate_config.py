@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config"
+ICON_KEYS = set(re.findall(r'x:Key="Icon\.([A-Za-z0-9]+)"', (ROOT / "assets" / "icons" / "lucide.xaml").read_text(encoding="utf-8")))
 
 ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]{2,63}$")
 REG_PATH_RE = re.compile(r"^(HKCU|HKLM):\\")
@@ -96,6 +97,9 @@ def check_settings(name, data, problems):
         for field in ("name", "description", "category"):
             if not str(item.get(field) or "").strip():
                 problems.append(f"{label}: no {field}")
+        icon = item.get("icon")
+        if icon is not None and icon not in ICON_KEYS:
+            problems.append(f"{label}: icon '{icon}' is not in assets/icons/lucide.xaml")
         if item.get("tab") not in TABS:
             problems.append(f"{label}: unknown tab")
         if item.get("risk") not in RISKS:

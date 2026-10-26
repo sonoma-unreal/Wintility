@@ -19,9 +19,6 @@ $script:RootPath = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Pa
 $script:Ui = @{}
 $script:Window = $null
 $script:WindowHandle = [IntPtr]::Zero
-$script:SplashWindow = $null
-$script:SplashBar = $null
-$script:SplashStatus = $null
 $script:Timer = $null
 $script:ClockTimer = $null
 $script:SpeedTimer = $null
@@ -36,10 +33,13 @@ $script:PowerState = $null
 $script:ShellTimer = $null
 $script:ShellJob = $null
 $script:ShellRefreshAgain = $false
+$script:ToggleTimer = $null
+$script:PendingToggles = @{}
 $script:IsAdmin = $false
 $script:RowViews = @{}
 $script:PendingWallpaper = $null
 $script:SelectedAccent = $null
+$script:LaunchInProgress = $false
 $script:TabNames = @('Personalization', 'Performance', 'Ads', 'Privacy', 'Internet', 'Storage', 'Debloat')
 $script:GlassMinimumBuild = 22621
 
@@ -188,6 +188,14 @@ public static class WintilityGlass
     }
 }
 
+function Set-UiFont {
+    param([Parameter(Mandatory)]$Window)
+    $fontDirectory = Join-Path $script:RootPath 'assets\fonts'
+    if (-not (Test-Path -LiteralPath $fontDirectory -PathType Container)) { return }
+    $fontBaseUri = New-Object System.Uri -ArgumentList ((Resolve-Path -LiteralPath $fontDirectory).Path + '\')
+    $Window.FontFamily = New-Object System.Windows.Media.FontFamily -ArgumentList $fontBaseUri, '#SF Pro Display'
+}
+
 function Set-WindowPalette {
     param(
         [Parameter(Mandatory)]$Window,
@@ -276,10 +284,18 @@ function Save-AppSettingsFromUi {
     $theme = 'System'
     if ($script:Ui.LightRadio.IsChecked) { $theme = 'Light' }
     elseif ($script:Ui.DarkRadio.IsChecked) { $theme = 'Dark' }
+    $windowWidth = [double]$script:Window.Width
+    $windowHeight = [double]$script:Window.Height
+    if ($script:Window.WindowState -eq 'Maximized') {
+        $windowWidth = [double]$script:Window.RestoreBounds.Width
+        $windowHeight = [double]$script:Window.RestoreBounds.Height
+    }
     Set-WintilityAppSettings -AppTheme $theme `
         -ShowBackground ([bool]$script:Ui.ShowBackgroundBox.IsChecked) `
         -Glass ([bool]$script:Ui.GlassBox.IsChecked) `
-        -Animations ([bool]$script:Ui.AnimationsBox.IsChecked)
+        -Animations ([bool]$script:Ui.AnimationsBox.IsChecked) `
+        -WindowWidth $windowWidth `
+        -WindowHeight $windowHeight
 }
 
 function Update-AppTheme {
@@ -297,10 +313,16 @@ function Set-BackgroundVisibility {
 
 function Update-SplashProgress {
     param([int]$Percent, [string]$Text)
-    $script:SplashBar.Value = $Percent
-    $script:SplashStatus.Text = $Text
-    # Let WPF paint the splash before the next step blocks the UI thread.
-    $script:SplashWindow.Dispatcher.Invoke([Action]{}, [System.Windows.Threading.DispatcherPriority]::Render)
+    if ($script:AnimationsOn -and $script:Ui.SplashBar.Value -ne $Percent) {
+        $animation = New-Object System.Windows.Media.Animation.DoubleAnimation
+        $animation.To = $Percent
+        $animation.Duration = New-Object System.Windows.Duration -ArgumentList ([TimeSpan]::FromMilliseconds(240))
+        $animation.EasingFunction = New-Object System.Windows.Media.Animation.CubicEase
+        $animation.EasingFunction.EasingMode = [System.Windows.Media.Animation.EasingMode]::EaseOut
+        $script:Ui.SplashBar.BeginAnimation([System.Windows.Controls.ProgressBar]::ValueProperty, $animation)
+    }
+    else { $script:Ui.SplashBar.Value = $Percent }
+    $script:Ui.SplashStatus.Text = $Text
 }
 
 function Get-AllTweakSettings {
@@ -334,7 +356,11 @@ function Invoke-SettingToggle {
     $setting = Find-WintilitySetting -Id $Id
     $view = $script:RowViews[$Id]
     try {
-        if ($Turn) { $result = Invoke-WintilitySetting -Id $Id }
+        if ((Test-WintilitySettingApplied -Setting $setting) -eq $Turn) {
+            # The switch is already where the user wants it (for example a quick on-then-off). Write nothing.
+            $result = New-WintilityResult -Id $Id -Name $setting.name -Changed $false -Message 'Already in that position. No change needed.'
+        }
+        elseif ($Turn) { $result = Invoke-WintilitySetting -Id $Id }
         else { $result = Restore-WintilitySetting -Id $Id }
     }
     catch {
@@ -362,60 +388,132 @@ function Invoke-SettingToggle {
     }
 }
 
+function New-UiChip {
+    param([Parameter(Mandatory)][string]$Text, [Parameter(Mandatory)][string]$Hex)
+    $label = New-Object System.Windows.Controls.TextBlock
+    $label.Text = $Text
+    $label.FontSize = 11
+    $label.FontWeight = 'SemiBold'
+    $label.Foreground = New-UiBrush -Hex $Hex
+    $chip = New-Object System.Windows.Controls.Border
+    $chip.CornerRadius = New-Object System.Windows.CornerRadius -ArgumentList ([double]6)
+    $chip.Padding = '8,2'
+    $chip.Margin = '0,0,6,4'
+    # '#26' makes the same color about 15 percent opaque, for the soft background.
+    $chip.Background = New-UiBrush -Hex ('#26' + $Hex.TrimStart('#'))
+    $chip.Child = $label
+    return $chip
+}
+
+function Request-SettingToggle {
+    param([Parameter(Mandatory)][string]$Id, [bool]$Turn)
+    # Let the switch finish gliding first. The registry work starts a moment later, so the
+    # animation is never cut short. Several quick clicks collapse into the last one.
+    $script:PendingToggles[$Id] = $Turn
+    if ($null -eq $script:ToggleTimer) {
+        $script:ToggleTimer = New-Object System.Windows.Threading.DispatcherTimer
+        $script:ToggleTimer.Interval = [TimeSpan]::FromMilliseconds(380)
+        $script:ToggleTimer.Add_Tick({ Invoke-UiAction { Invoke-PendingToggle } })
+    }
+    $script:ToggleTimer.Stop()
+    $script:ToggleTimer.Start()
+}
+
+function Invoke-PendingToggle {
+    $script:ToggleTimer.Stop()
+    $pending = $script:PendingToggles
+    $script:PendingToggles = @{}
+    foreach ($id in @($pending.Keys)) {
+        Invoke-UiAction { Invoke-SettingToggle -Id $id -Turn ([bool]$pending[$id]) }
+    }
+}
+
 function New-TweakRow {
-    param($Setting)
+    param([Parameter(Mandatory)]$Setting, [bool]$Last = $false)
     $result = $script:LastResults[$Setting.id]
 
     $grid = New-Object System.Windows.Controls.Grid
+    $iconColumn = New-Object System.Windows.Controls.ColumnDefinition
+    $iconColumn.Width = [System.Windows.GridLength]::Auto
     $textColumn = New-Object System.Windows.Controls.ColumnDefinition
     $textColumn.Width = New-Object System.Windows.GridLength -ArgumentList 1, ([System.Windows.GridUnitType]::Star)
     $switchColumn = New-Object System.Windows.Controls.ColumnDefinition
     $switchColumn.Width = [System.Windows.GridLength]::Auto
+    $grid.ColumnDefinitions.Add($iconColumn)
     $grid.ColumnDefinitions.Add($textColumn)
     $grid.ColumnDefinitions.Add($switchColumn)
 
-    $text = New-Object System.Windows.Controls.StackPanel
-    $text.Children.Add((New-UiText -Text $Setting.name -Role 'TextBrush' -Bold $true)) | Out-Null
-    $text.Children.Add((New-UiText -Text $Setting.description -Role 'SubBrush')) | Out-Null
+    # Icon tile
+    $iconKey = Get-WintilityProperty -Object $Setting -Name 'icon'
+    if (-not $iconKey) { $iconKey = 'SlidersHorizontal' }
+    $glyph = New-UiIcon -Key $iconKey -Size 20
+    $glyph.Foreground = New-UiBrush -Hex '#BFE4FF'
+    $glyph.HorizontalAlignment = 'Center'
+    $tile = New-Object System.Windows.Controls.Border
+    $tile.Width = 38
+    $tile.Height = 38
+    $tile.CornerRadius = New-Object System.Windows.CornerRadius -ArgumentList ([double]10)
+    $tile.Background = New-UiBrush -Hex '#1B4B78'
+    $tile.VerticalAlignment = 'Top'
+    $tile.Child = $glyph
+    [System.Windows.Controls.Grid]::SetColumn($tile, 0)
+    $grid.Children.Add($tile) | Out-Null
 
-    $tags = "Risk: $($Setting.risk)"
-    if ([bool]$Setting.requiresRestart) { $tags += '  |  Restart needed' }
-    if ([bool]$Setting.requiresLogoff) { $tags += '  |  Sign-out needed' }
-    if ((Get-WintilityProperty -Object $Setting -Name 'requiresExplorerRestart') -eq $true) { $tags += '  |  Applies live' }
-    $text.Children.Add((New-UiText -Text $tags -Role 'SubBrush')) | Out-Null
+    # Title, description, chips and the result line
+    $text = New-Object System.Windows.Controls.StackPanel
+    $text.Margin = '14,0,18,0'
+    $text.VerticalAlignment = 'Center'
+    $title = New-UiText -Text $Setting.name -Role 'TextBrush' -Bold $true
+    $title.FontSize = 14.5
+    $title.Margin = '0'
+    $text.Children.Add($title) | Out-Null
+    $description = New-UiText -Text $Setting.description -Role 'SubBrush'
+    $description.FontSize = 12.5
+    $description.Margin = '0,3,0,0'
+    $text.Children.Add($description) | Out-Null
+
+    $chips = New-Object System.Windows.Controls.WrapPanel
+    $chips.Margin = '0,8,0,0'
+    $riskColors = @{ Low = '#34C759'; Medium = '#E8A33D'; High = '#E5484D' }
+    $chips.Children.Add((New-UiChip -Text "$($Setting.risk) risk" -Hex $riskColors[[string]$Setting.risk])) | Out-Null
+    if ([bool]$Setting.requiresAdmin) { $chips.Children.Add((New-UiChip -Text 'Needs admin' -Hex '#5BB4FF')) | Out-Null }
+    if ([bool]$Setting.requiresRestart) { $chips.Children.Add((New-UiChip -Text 'Restart needed' -Hex '#5BB4FF')) | Out-Null }
+    if ([bool]$Setting.requiresLogoff) { $chips.Children.Add((New-UiChip -Text 'Sign-out needed' -Hex '#5BB4FF')) | Out-Null }
+    if ((Get-WintilityProperty -Object $Setting -Name 'requiresExplorerRestart') -eq $true) { $chips.Children.Add((New-UiChip -Text 'Applies live' -Hex '#5BB4FF')) | Out-Null }
+    $text.Children.Add($chips) | Out-Null
 
     $messageBlock = New-UiText -Text '' -Role 'TextBrush'
+    $messageBlock.Margin = '0,4,0,0'
     $messageBlock.Visibility = 'Collapsed'
-    if ($result -and $result.Message) {
+    if ($result) {
         $messageBlock.Text = (Get-ResultText -Result $result)
         $messageBlock.Visibility = 'Visible'
         Set-ResultTone -Block $messageBlock -Result $result
     }
     $text.Children.Add($messageBlock) | Out-Null
-    [System.Windows.Controls.Grid]::SetColumn($text, 0)
+    [System.Windows.Controls.Grid]::SetColumn($text, 1)
     $grid.Children.Add($text) | Out-Null
 
+    # The switch
     $toggle = New-Object System.Windows.Controls.Primitives.ToggleButton
     $toggle.Style = $script:Window.FindResource('MacSwitch')
     $toggle.IsChecked = (Test-WintilitySettingApplied -Setting $Setting)
     $toggle.Tag = $Setting.id
-    $toggle.VerticalAlignment = 'Top'
-    $toggle.Margin = '18,4,0,0'
+    $toggle.VerticalAlignment = 'Center'
     $toggle.Add_Click({
         param($sender, $e)
-        Invoke-UiAction { Invoke-SettingToggle -Id $sender.Tag -Turn ([bool]$sender.IsChecked) }
+        Invoke-UiAction { Request-SettingToggle -Id $sender.Tag -Turn ([bool]$sender.IsChecked) }
     })
-    [System.Windows.Controls.Grid]::SetColumn($toggle, 1)
+    [System.Windows.Controls.Grid]::SetColumn($toggle, 2)
     $grid.Children.Add($toggle) | Out-Null
-
     $script:RowViews[$Setting.id] = @{ Toggle = $toggle; Message = $messageBlock }
 
-    $border = New-Object System.Windows.Controls.Border
-    $border.Padding = '0,12'
-    $border.BorderThickness = '0,0,0,1'
-    $border.SetResourceReference([System.Windows.Controls.Border]::BorderBrushProperty, 'DividerBrush')
-    $border.Child = $grid
-    return $border
+    $row = New-Object System.Windows.Controls.Border
+    $row.Padding = '18,16'
+    if ($Last) { $row.BorderThickness = '0' } else { $row.BorderThickness = '0,0,0,1' }
+    $row.SetResourceReference([System.Windows.Controls.Border]::BorderBrushProperty, 'DividerBrush')
+    $row.Child = $grid
+    return $row
 }
 
 function Update-TweakPanel {
@@ -423,16 +521,29 @@ function Update-TweakPanel {
     $panel = $script:Ui["Panel_$Tab"]
     $panel.Children.Clear()
     $settings = @(Get-AllTweakSettings | Where-Object { $_.tab -eq $Tab -and (Test-TweakVisible -Setting $_) } | Sort-Object -Property category, name)
-    $lastCategory = $null
-    foreach ($setting in $settings) {
-        if ($setting.category -ne $lastCategory) {
-            $header = New-UiText -Text $setting.category -Role 'SubBrush' -Bold $true
-            $header.FontSize = 14
-            $header.Margin = '0,18,0,2'
-            $panel.Children.Add($header) | Out-Null
-            $lastCategory = $setting.category
+
+    # One labelled card per category, with a row for each tweak.
+    foreach ($group in @($settings | Group-Object -Property category)) {
+        $label = New-UiText -Text $group.Name.ToUpperInvariant() -Role 'SubBrush' -Bold $true
+        $label.FontSize = 11.5
+        $label.Margin = '6,0,0,8'
+        $panel.Children.Add($label) | Out-Null
+
+        $rows = New-Object System.Windows.Controls.StackPanel
+        $members = @($group.Group)
+        $index = 0
+        foreach ($member in $members) {
+            $index++
+            $rows.Children.Add((New-TweakRow -Setting $member -Last ($index -eq $members.Count))) | Out-Null
         }
-        $panel.Children.Add((New-TweakRow -Setting $setting)) | Out-Null
+        $card = New-Object System.Windows.Controls.Border
+        $card.CornerRadius = New-Object System.Windows.CornerRadius -ArgumentList ([double]12)
+        $card.BorderThickness = '1'
+        $card.Margin = '0,0,0,24'
+        $card.SetResourceReference([System.Windows.Controls.Border]::BackgroundProperty, 'CardBrush')
+        $card.SetResourceReference([System.Windows.Controls.Border]::BorderBrushProperty, 'DividerBrush')
+        $card.Child = $rows
+        $panel.Children.Add($card) | Out-Null
     }
 }
 
@@ -861,10 +972,132 @@ function Switch-SettingsView {
         Start-FadeIn -Element $script:Ui.MainTabs -Milliseconds 160
     }
     else {
+        $script:Ui.LogView.Visibility = 'Collapsed'
         $script:Ui.MainTabs.Visibility = 'Collapsed'
         $script:Ui.SettingsView.Visibility = 'Visible'
         Start-FadeIn -Element $script:Ui.SettingsView -Milliseconds 160
     }
+}
+
+function Update-LogViewer {
+    $directory = Join-Path $env:LOCALAPPDATA 'Wintility\Logs'
+    $script:Ui.LogLocationText.Text = $directory
+    if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+        $script:Ui.LogText.Text = 'No application logs have been written yet.'
+        return
+    }
+
+    $files = @(Get-ChildItem -LiteralPath $directory -Filter 'wintility_*.log' -File -ErrorAction SilentlyContinue |
+        Sort-Object -Property LastWriteTime -Descending)
+    $sections = New-Object System.Collections.Generic.List[string]
+    $remaining = 5000
+    foreach ($file in $files) {
+        if ($remaining -le 0) { break }
+        $tail = [math]::Min(1000, $remaining)
+        try {
+            $lines = @(Get-Content -LiteralPath $file.FullName -Tail $tail -ErrorAction Stop)
+            if ($lines.Count -gt 0) {
+                $sections.Insert(0, ('[{0}]' -f $file.Name) + [Environment]::NewLine + ($lines -join [Environment]::NewLine))
+                $remaining -= $lines.Count
+            }
+        }
+        catch {
+            $sections.Insert(0, ('[{0}] Could not read this log: {1}' -f $file.Name, $_.Exception.Message))
+        }
+    }
+    if ($sections.Count -eq 0) { $script:Ui.LogText.Text = 'No application logs have been written yet.' }
+    else {
+        $script:Ui.LogText.Text = $sections -join ([Environment]::NewLine + [Environment]::NewLine)
+        $script:Ui.LogText.CaretIndex = $script:Ui.LogText.Text.Length
+        $script:Ui.LogText.ScrollToEnd()
+    }
+}
+
+function Switch-LogView {
+    if ($script:Ui.LogView.Visibility -eq 'Visible') {
+        $script:Ui.LogView.Visibility = 'Collapsed'
+        $script:Ui.MainTabs.Visibility = 'Visible'
+        Start-FadeIn -Element $script:Ui.MainTabs -Milliseconds 160
+        return
+    }
+    $script:Ui.SettingsView.Visibility = 'Collapsed'
+    $script:Ui.MainTabs.Visibility = 'Collapsed'
+    $script:Ui.LogView.Visibility = 'Visible'
+    Update-LogViewer
+    Start-FadeIn -Element $script:Ui.LogView -Milliseconds 160
+}
+
+function Start-TabContentTransition {
+    param([Parameter(Mandatory)]$TabControl)
+    $current = $TabControl.Template.FindName('PART_SelectedContentHost', $TabControl)
+    $previous = $TabControl.Template.FindName('PART_PreviousContentHost', $TabControl)
+    if (-not $current -or -not $previous) { return }
+
+    if ($null -eq $script:LastTabIndex) {
+        $script:LastTabIndex = $TabControl.Items.IndexOf($TabControl.SelectedItem)
+        $current.Content = $TabControl.SelectedItem.Content
+        return
+    }
+
+    $oldX = 0.0; $oldOpacity = 1.0
+    if ($current.RenderTransform -is [System.Windows.Media.TranslateTransform]) {
+        $oldX = [double]$current.RenderTransform.X
+    }
+    $oldOpacity = [double]$current.Opacity
+    $current.BeginAnimation([System.Windows.UIElement]::OpacityProperty, $null)
+    if ($current.RenderTransform -is [System.Windows.Media.TranslateTransform]) {
+        $current.RenderTransform.BeginAnimation([System.Windows.Media.TranslateTransform]::XProperty, $null)
+    }
+    $current.RenderTransform = New-Object System.Windows.Media.TranslateTransform -ArgumentList $oldX, 0
+
+    $previous.BeginAnimation([System.Windows.UIElement]::OpacityProperty, $null)
+    if ($previous.RenderTransform -is [System.Windows.Media.TranslateTransform]) {
+        $previous.RenderTransform.BeginAnimation([System.Windows.Media.TranslateTransform]::XProperty, $null)
+    }
+    $leavingContent = $current.Content
+    $current.Content = $null
+    $previous.Content = $leavingContent
+    $previous.Visibility = 'Visible'
+    $previous.Opacity = $oldOpacity
+    $previous.RenderTransform = New-Object System.Windows.Media.TranslateTransform -ArgumentList $oldX, 0
+
+    $newIndex = $TabControl.Items.IndexOf($TabControl.SelectedItem)
+    $direction = if ($newIndex -gt $script:LastTabIndex) { 1.0 } else { -1.0 }
+    $script:LastTabIndex = $newIndex
+    $current.Content = $TabControl.SelectedItem.Content
+    if (-not $script:AnimationsOn) {
+        $previous.Visibility = 'Collapsed'; $previous.Content = $null
+        $current.Opacity = 1.0; $current.RenderTransform = New-Object System.Windows.Media.TranslateTransform
+        return
+    }
+
+    $script:TabTransitionGeneration++
+    $generation = $script:TabTransitionGeneration
+    $current.RenderTransform = New-Object System.Windows.Media.TranslateTransform -ArgumentList (24.0 * $direction), 0
+    $current.Opacity = 0.72
+    $tabDuration = New-Object System.Windows.Duration -ArgumentList ([TimeSpan]::FromMilliseconds(360))
+    $previousOut = New-Object System.Windows.Media.Animation.DoubleAnimation
+    $previousOut.To = -24.0 * $direction; $previousOut.Duration = $tabDuration
+    $previousOut.EasingFunction = New-Object System.Windows.Media.Animation.CubicEase
+    $previousOut.EasingFunction.EasingMode = [System.Windows.Media.Animation.EasingMode]::EaseOut
+    $previousFade = New-Object System.Windows.Media.Animation.DoubleAnimation
+    $previousFade.To = 0.0; $previousFade.Duration = $previousOut.Duration
+    $script:PreviousTabHost = $previous
+    $previousFade.Add_Completed({
+        if ($generation -eq $script:TabTransitionGeneration) { $script:PreviousTabHost.Visibility = 'Collapsed'; $script:PreviousTabHost.Content = $null }
+    }.GetNewClosure())
+    $previous.RenderTransform.BeginAnimation([System.Windows.Media.TranslateTransform]::XProperty, $previousOut)
+    $previous.BeginAnimation([System.Windows.UIElement]::OpacityProperty, $previousFade)
+
+    $incoming = New-Object System.Windows.Media.Animation.DoubleAnimation
+    $incoming.From = 24.0 * $direction; $incoming.To = 0.0
+    $incoming.Duration = $tabDuration
+    $incoming.EasingFunction = New-Object System.Windows.Media.Animation.CubicEase
+    $incoming.EasingFunction.EasingMode = [System.Windows.Media.Animation.EasingMode]::EaseOut
+    $fadeIn = New-Object System.Windows.Media.Animation.DoubleAnimation
+    $fadeIn.From = 0.72; $fadeIn.To = 1.0; $fadeIn.Duration = $incoming.Duration
+    $current.RenderTransform.BeginAnimation([System.Windows.Media.TranslateTransform]::XProperty, $incoming)
+    $current.BeginAnimation([System.Windows.UIElement]::OpacityProperty, $fadeIn)
 }
 
 function Connect-UiEvents {
@@ -877,12 +1110,19 @@ function Connect-UiEvents {
 
     $script:Ui.GearButton.Add_Click({ Invoke-UiAction { Switch-SettingsView } })
     $script:Ui.SettingsDoneButton.Add_Click({ Invoke-UiAction { Switch-SettingsView } })
+    $script:Ui.LogButton.Add_Click({ Invoke-UiAction { Switch-LogView } })
+    $script:Ui.RefreshLogButton.Add_Click({ Invoke-UiAction { Update-LogViewer } })
+    $script:Ui.LogDoneButton.Add_Click({ Invoke-UiAction { Switch-LogView } })
+    $script:Ui.MainTabs.ApplyTemplate()
+    if ($script:Ui.MainTabs.SelectedIndex -lt 0) { $script:Ui.MainTabs.SelectedIndex = 0 }
+    $script:LastTabIndex = $null
+    $script:TabTransitionGeneration = 0
+    Start-TabContentTransition -TabControl $script:Ui.MainTabs
     $script:Ui.MainTabs.Add_SelectionChanged({
         param($sender, $e)
         if ($e.OriginalSource -ne $sender) { return }
         Invoke-UiAction {
-            $contentHost = $script:Ui.MainTabs.Template.FindName('PART_SelectedContentHost', $script:Ui.MainTabs)
-            if ($contentHost) { Start-FadeIn -Element $contentHost -Milliseconds 160 }
+            Start-TabContentTransition -TabControl $script:Ui.MainTabs
             # The active plan can change outside Wintility, so read it again whenever this tab opens.
             if ($script:Ui.MainTabs.SelectedItem.Header -eq 'Power') { Update-PowerView }
         }
@@ -980,149 +1220,246 @@ function Initialize-UiTimers {
     })
 }
 
+function Start-SplashBackgroundMotion {
+    if (-not $script:AnimationsOn) { return }
+    $image = $script:Ui.SplashBackground
+    $group = $image.RenderTransform
+    $rotation = $group.Children[0]
+    $drift = $group.Children[1]
+    $rotate = New-Object System.Windows.Media.Animation.DoubleAnimation
+    $rotate.From = 0; $rotate.To = 360
+    $rotate.Duration = New-Object System.Windows.Duration -ArgumentList ([TimeSpan]::FromSeconds(70))
+    $rotate.RepeatBehavior = [System.Windows.Media.Animation.RepeatBehavior]::Forever
+    $rotation.BeginAnimation([System.Windows.Media.RotateTransform]::AngleProperty, $rotate)
+    foreach ($pair in @(@('X', 10.0), @('Y', -6.0))) {
+        $driftAnimation = New-Object System.Windows.Media.Animation.DoubleAnimation
+        $driftAnimation.From = -[double]$pair[1]; $driftAnimation.To = [double]$pair[1]
+        $driftAnimation.Duration = New-Object System.Windows.Duration -ArgumentList ([TimeSpan]::FromSeconds(12))
+        $driftAnimation.AutoReverse = $true
+        $driftAnimation.RepeatBehavior = [System.Windows.Media.Animation.RepeatBehavior]::Forever
+        $property = if ($pair[0] -eq 'X') { [System.Windows.Media.TranslateTransform]::XProperty } else { [System.Windows.Media.TranslateTransform]::YProperty }
+        $drift.BeginAnimation($property, $driftAnimation)
+    }
+}
+
+function Show-SplashLaunchPrompt {
+    if ($script:AnimationsOn) {
+        $fade = New-Object System.Windows.Media.Animation.DoubleAnimation
+        $fade.To = 0.0
+        $fade.Duration = New-Object System.Windows.Duration -ArgumentList ([TimeSpan]::FromMilliseconds(160))
+        $fade.Add_Completed({ Complete-SplashPrompt })
+        $script:Ui.SplashProgressPanel.BeginAnimation([System.Windows.UIElement]::OpacityProperty, $fade)
+    }
+    else { Complete-SplashPrompt }
+}
+
+function Complete-SplashPrompt {
+    $script:Ui.SplashProgressPanel.Visibility = 'Collapsed'
+    $launch = $script:Ui.SplashLaunchPanel
+    $launch.Visibility = 'Visible'
+    Start-FadeIn -Element $launch -Milliseconds 180
+}
+
+function Complete-SplashLaunch {
+    $transform = $script:Ui.SplashBackground.RenderTransform
+    $transform.Children[0].BeginAnimation([System.Windows.Media.RotateTransform]::AngleProperty, $null)
+    $transform.Children[1].BeginAnimation([System.Windows.Media.TranslateTransform]::XProperty, $null)
+    $transform.Children[1].BeginAnimation([System.Windows.Media.TranslateTransform]::YProperty, $null)
+    $script:Ui.StartupOverlay.Visibility = 'Collapsed'
+    $script:Ui.MainContent.IsHitTestVisible = $true
+    $script:MainDialogCompleted = $true
+}
+
+function Begin-SplashLaunch {
+    if ($script:LaunchInProgress) { return }
+    $script:LaunchInProgress = $true
+    $script:Ui.LaunchButton.IsEnabled = $false
+    if (-not $script:AnimationsOn) {
+        $script:Ui.MainContent.Opacity = 1.0
+        $script:Ui.MainContent.IsHitTestVisible = $true
+        Complete-SplashLaunch
+        return
+    }
+    $storyboard = New-Object System.Windows.Media.Animation.Storyboard
+    foreach ($pair in @(
+        @{ Element = $script:Ui.MainContent; From = 0.0; To = 1.0 },
+        @{ Element = $script:Ui.StartupOverlay; From = 1.0; To = 0.0 }
+    )) {
+        $fade = New-Object System.Windows.Media.Animation.DoubleAnimation
+        $fade.From = [double]$pair.From
+        $fade.To = [double]$pair.To
+        $fade.Duration = New-Object System.Windows.Duration -ArgumentList ([TimeSpan]::FromMilliseconds(300))
+        $fade.EasingFunction = New-Object System.Windows.Media.Animation.CubicEase
+        $fade.EasingFunction.EasingMode = [System.Windows.Media.Animation.EasingMode]::EaseOut
+        [System.Windows.Media.Animation.Storyboard]::SetTarget($fade, $pair.Element)
+        [System.Windows.Media.Animation.Storyboard]::SetTargetProperty($fade, [System.Windows.PropertyPath]::new([System.Windows.UIElement]::OpacityProperty))
+        [void]$storyboard.Children.Add($fade)
+    }
+    $storyboard.Add_Completed({ Complete-SplashLaunch })
+    $storyboard.Begin($script:Window)
+}
+
+function Initialize-WintilityWindow {
+    param([Parameter(Mandatory)]$Version, [Parameter(Mandatory)]$Bounds)
+
+    $script:Window = Read-UiXaml -FileName 'MainWindow.xaml'
+    $script:Window.Title = "$($Version.Product) $($Version.Version) $($Version.Edition)"
+    Set-UiFont -Window $script:Window
+    Import-UiIcons
+    $names = @('RootGrid','MainContent','StartupOverlay','SplashBackground','SplashProgressPanel','SplashBar','SplashStatus','SplashVersion','SplashLaunchPanel','LaunchButton','BackgroundImage','AdminText','GearButton','LogButton','CloseButton','MinimizeButton','MaximizeButton','HomeClock','HomeTitle','HomeEdition','MainTabs','SettingsView','SettingsDoneButton','LogView','LogLocationText','LogText','RefreshLogButton','LogDoneButton','ElevateCard','ElevateNote','ElevateButton','RestartExplorerButton','PowerActiveText','PowerSaverBox','PowerSaverTitle','PowerSaverDesc','PowerSaverStatus','PowerBalancedBox','PowerBalancedTitle','PowerBalancedDesc','PowerBalancedStatus','PowerSaverIcon','PowerBalancedIcon','PowerHighIcon','PowerHighBox','PowerHighTitle','PowerHighDesc','PowerHighStatus','PowerHighWarning','RestorePowerButton','RestoreBackupButton','ChooseWallpaperButton','WallpaperPreview','WallpaperInfoText','ApplyWallpaperButton','RestoreWallpaperButton','LightModeButton','DarkModeButton','ModeText','AccentPanel','AccentText','ApplyAccentButton','FollowSystemRadio','LightRadio','DarkRadio','ShowBackgroundBox','GlassBox','GlassNote','AnimationsBox','SystemInfoPanel','RefreshInfoButton','ClaudeLink','CodexCreditIcon','VersionText','StatusText')
+    foreach ($tab in $script:TabNames) { $names += "Panel_$tab" }
+    $script:Ui = Get-UiControlMap -Root $script:Window -Names $names
+    $script:Window.MinWidth = [math]::Min($script:Window.MinWidth, [System.Windows.SystemParameters]::WorkArea.Width)
+    $script:Window.MinHeight = [math]::Min($script:Window.MinHeight, [System.Windows.SystemParameters]::WorkArea.Height)
+    $script:Window.WindowStartupLocation = 'Manual'
+    $script:Window.Width = $Bounds.Width
+    $script:Window.Height = $Bounds.Height
+    $script:Window.Left = $Bounds.Left
+    $script:Window.Top = $Bounds.Top
+    $script:Ui.MainContent.Opacity = 0.0
+    $script:Ui.MainContent.IsHitTestVisible = $false
+    $script:Ui.StartupOverlay.Opacity = 0.0
+    $script:Ui.SplashVersion.Text = "$($Version.Version)  |  $($Version.Edition)"
+    $script:Ui.SplashBar.Value = 10
+    $script:WindowHandle = (New-Object System.Windows.Interop.WindowInteropHelper -ArgumentList $script:Window).EnsureHandle()
+    Set-UiTheme -Theme (Get-EffectiveTheme)
+    Initialize-UiTimers
+
+    $backgroundPath = Join-Path $script:RootPath 'assets\background.png'
+    if (Test-Path -LiteralPath $backgroundPath) {
+        $bitmap = New-Object System.Windows.Media.Imaging.BitmapImage
+        $bitmap.BeginInit(); $bitmap.UriSource = New-Object System.Uri -ArgumentList $backgroundPath
+        $bitmap.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad; $bitmap.EndInit()
+        $script:Ui.SplashBackground.Source = $bitmap
+        $script:Ui.BackgroundImage.Source = $bitmap
+    }
+    $codexIconPath = Join-Path $script:RootPath 'assets\icons\codex.png'
+    if (Test-Path -LiteralPath $codexIconPath) {
+        $codexBitmap = New-Object System.Windows.Media.Imaging.BitmapImage
+        $codexBitmap.BeginInit(); $codexBitmap.UriSource = New-Object System.Uri -ArgumentList $codexIconPath
+        $codexBitmap.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad; $codexBitmap.EndInit()
+        $script:Ui.CodexCreditIcon.Source = $codexBitmap
+    }
+    Start-SplashBackgroundMotion
+    $script:Window.Add_Loaded({
+        Start-FadeIn -Element $script:Ui.StartupOverlay -Milliseconds 260
+    })
+    $script:Window.Add_Closed({
+        if ($script:StartupSettingsReady) { Save-AppSettingsFromUi }
+        foreach ($timer in @($script:Timer,$script:ClockTimer,$script:SpeedTimer,$script:ShellTimer,$script:ToggleTimer,$script:StartupTimer)) { if ($timer) { $timer.Stop() } }
+    })
+}
+
 function Show-WintilityWindow {
-    <#
-    .SYNOPSIS
-        Shows the Wintility splash screen, then the main window.
-    #>
     [CmdletBinding()]
-    param(
-        # The launcher passes a file path. Creating that file tells it the window is up, so its console can close.
-        [string]$ReadyFile
-    )
+    param([string]$ReadyFile)
 
-    $clock = [System.Diagnostics.Stopwatch]::StartNew()
+    $script:StartupReadyFile = $ReadyFile
+    $script:StartupFailed = $false
+    $script:MainDialogCompleted = $false
+    $script:StartupSettingsReady = $false
     $version = Get-WintilityVersion
+    $settings = Get-WintilityAppSettings
+    $script:AnimationsOn = ([bool]$settings.Animations -and [System.Windows.SystemParameters]::ClientAreaAnimation)
+    $work = [System.Windows.SystemParameters]::WorkArea
+    $windowWidth = [math]::Min([math]::Max([double]$settings.WindowWidth, 1120.0), [double]$work.Width)
+    $windowHeight = [math]::Min([math]::Max([double]$settings.WindowHeight, 540.0), [double]$work.Height)
+    $windowBounds = @{
+        Width = $windowWidth; Height = $windowHeight
+        Left = $work.Left + (($work.Width - $windowWidth) / 2)
+        Top = $work.Top + (($work.Height - $windowHeight) / 2)
+    }
+    $script:StartupContext = @{ Version = $version; Settings = $settings; WindowBounds = $windowBounds }
+    Initialize-WintilityWindow -Version $version -Bounds $windowBounds
 
-    $script:SplashWindow = Read-UiXaml -FileName 'SplashWindow.xaml'
-    Set-WindowPalette -Window $script:SplashWindow -Theme (Get-EffectiveTheme)
-    $script:SplashBar = $script:SplashWindow.FindName('SplashBar')
-    $script:SplashStatus = $script:SplashWindow.FindName('SplashStatus')
-    $script:SplashWindow.FindName('SplashVersion').Text = "$($version.Edition)  |  $($version.Version)"
-    $script:SplashWindow.Show()
-
-    try {
-        Update-SplashProgress -Percent 10 -Text 'Loading the interface...'
-        $script:Window = Read-UiXaml -FileName 'MainWindow.xaml'
-        Import-UiIcons
-
-        $names = @(
-            'RootGrid', 'BackgroundImage', 'AdminText', 'GearButton', 'CloseButton', 'MinimizeButton', 'MaximizeButton',
-            'HomeClock', 'HomeTitle', 'HomeEdition', 'MainTabs', 'SettingsView', 'SettingsDoneButton',
-            'ElevateCard', 'ElevateNote', 'ElevateButton', 'RestartExplorerButton',
-            'PowerActiveText', 'PowerSaverBox', 'PowerSaverTitle', 'PowerSaverDesc', 'PowerSaverStatus',
-            'PowerBalancedBox', 'PowerBalancedTitle', 'PowerBalancedDesc', 'PowerBalancedStatus',
-            'PowerSaverIcon', 'PowerBalancedIcon', 'PowerHighIcon', 'PowerHighBox', 'PowerHighTitle', 'PowerHighDesc', 'PowerHighStatus', 'PowerHighWarning', 'RestorePowerButton', 'RestoreBackupButton', 'ChooseWallpaperButton', 'WallpaperPreview',
-            'WallpaperInfoText', 'ApplyWallpaperButton', 'RestoreWallpaperButton', 'LightModeButton',
-            'DarkModeButton', 'ModeText', 'AccentPanel', 'AccentText', 'ApplyAccentButton', 'FollowSystemRadio',
-            'LightRadio', 'DarkRadio', 'ShowBackgroundBox', 'GlassBox', 'GlassNote', 'AnimationsBox',
-            'SystemInfoPanel', 'RefreshInfoButton', 'ClaudeLink', 'VersionText', 'StatusText'
-        )
-        foreach ($tab in $script:TabNames) { $names += "Panel_$tab" }
-        $script:Ui = Get-UiControlMap -Root $script:Window -Names $names
-        # Never open larger than the screen. These sizes are in device-independent pixels,
-        # so this also covers high DPI scaling on small laptop screens.
-        $work = [System.Windows.SystemParameters]::WorkArea
-        $script:Window.MinWidth = [math]::Min($script:Window.MinWidth, $work.Width)
-        $script:Window.MinHeight = [math]::Min($script:Window.MinHeight, $work.Height)
-        $script:Window.Width = [math]::Min($script:Window.Width, $work.Width)
-        $script:Window.Height = [math]::Min($script:Window.Height, $work.Height)
-        # Create the window handle now so the glass effect can be applied before the window is shown.
-        $script:WindowHandle = (New-Object System.Windows.Interop.WindowInteropHelper -ArgumentList $script:Window).EnsureHandle()
-        Initialize-UiTimers
-
-        Update-SplashProgress -Percent 30 -Text 'Reading your preferences...'
-        $appSettings = Get-WintilityAppSettings
+    $script:StartupQueue = New-Object System.Collections.Queue
+    $script:StartupQueue.Enqueue([PSCustomObject]@{ Percent = 30; Text = 'Applying your preferences...'; Tab = $null; Action = {
         Set-UiTheme -Theme (Get-EffectiveTheme)
-        $script:Ui.VersionText.Text = "$($version.Product) $($version.Version) $($version.Edition)"
-        $script:Ui.HomeTitle.Text = "$($version.Product) $($version.Version)"
-        $script:Ui.HomeEdition.Text = $version.Edition
-        $script:Ui.HomeClock.Text = (Get-ClockText)
-
-        $imagePath = Join-Path $script:RootPath 'assets\background.png'
-        if (Test-Path -LiteralPath $imagePath) {
-            $bitmap = New-Object System.Windows.Media.Imaging.BitmapImage
-            $bitmap.BeginInit()
-            $bitmap.UriSource = New-Object System.Uri -ArgumentList $imagePath
-            $bitmap.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad
-            $bitmap.EndInit()
-            $script:Ui.BackgroundImage.Source = $bitmap
-        }
-
-        Update-SplashProgress -Percent 50 -Text 'Checking permissions...'
-        $script:IsAdmin = (Test-WintilityAdmin)
-        if ($script:IsAdmin) {
-            $script:Ui.AdminText.Text = 'Running elevated'
-            $script:Ui.ElevateCard.Visibility = 'Collapsed'
-        }
-        else {
-            $script:Ui.AdminText.Text = 'Standard user. Tweaks that need administrator access are hidden.'
-            $script:Ui.ElevateNote.Text = "$(Get-HiddenTweakCount) more tweaks are hidden because they need administrator access."
-        }
-
-        Update-SplashProgress -Percent 65 -Text 'Reading current system settings...'
+        $script:Ui.VersionText.Text = "$($script:StartupContext.Version.Product) $($script:StartupContext.Version.Version) $($script:StartupContext.Version.Edition)"
+        $script:Ui.HomeTitle.Text = "$($script:StartupContext.Version.Product) $($script:StartupContext.Version.Version)"
+        $script:Ui.HomeEdition.Text = $script:StartupContext.Version.Edition
+        $script:Ui.HomeClock.Text = Get-ClockText
+    }})
+    $script:StartupQueue.Enqueue([PSCustomObject]@{ Percent = 50; Text = 'Checking permissions...'; Tab = $null; Action = {
+        $script:IsAdmin = Test-WintilityAdmin
+        if ($script:IsAdmin) { $script:Ui.AdminText.Text = 'Running elevated'; $script:Ui.ElevateCard.Visibility = 'Collapsed' }
+        else { $script:Ui.AdminText.Text = 'Standard user. Tweaks that need administrator access are hidden.'; $script:Ui.ElevateNote.Text = "$(Get-HiddenTweakCount) more tweaks are hidden because they need administrator access." }
+    }})
+    $script:StartupQueue.Enqueue([PSCustomObject]@{ Percent = 54; Text = 'Preparing settings panels...'; Tab = $null; Action = {
         Initialize-AccentSwatches
-        Update-AllTweakPanels
         Update-PowerView
-
-        Update-SplashProgress -Percent 80 -Text 'Reading system information...'
-        Update-SystemInfoPanel
-
-        Update-SplashProgress -Percent 90 -Text 'Preparing the window...'
-        # Set initial radio and checkbox states before attaching handlers so nothing fires during setup.
-        $script:Ui.FollowSystemRadio.IsChecked = ($appSettings.AppTheme -eq 'System')
-        $script:Ui.LightRadio.IsChecked = ($appSettings.AppTheme -eq 'Light')
-        $script:Ui.DarkRadio.IsChecked = ($appSettings.AppTheme -eq 'Dark')
-        $script:Ui.ShowBackgroundBox.IsChecked = $appSettings.ShowBackground
-        Set-BackgroundVisibility -Show $appSettings.ShowBackground
-
-        $glassSupported = ((Get-WintilityEnvironment).WindowBuild -ge $script:GlassMinimumBuild)
-        if ($glassSupported) {
-            $script:Ui.GlassNote.Text = 'Uses the Windows 11 backdrop. If the window looks wrong, turn this off.'
-        }
-        else {
-            $script:Ui.GlassBox.IsEnabled = $false
-            $script:Ui.GlassNote.Text = 'Needs Windows 11 (build 22621 or newer).'
-        }
-        $script:Ui.GlassBox.IsChecked = ($appSettings.Glass -and $glassSupported)
-        if ($script:Ui.GlassBox.IsChecked) { Set-WindowGlass -Enable $true }
-
-        $script:Ui.AnimationsBox.IsChecked = $appSettings.Animations
-        Update-AnimationFlag
-        # Start fully transparent so the window fades in instead of flashing.
-        if ($script:AnimationsOn) { $script:Ui.RootGrid.Opacity = 0.0 }
-
-        Connect-UiEvents
-        $script:Window.Add_Loaded({
-            Invoke-UiAction { Start-FadeIn -Element $script:Ui.RootGrid -Milliseconds 280 }
-        })
-        $script:Window.Add_Closed({
-            foreach ($timer in @($script:Timer, $script:ClockTimer, $script:SpeedTimer, $script:ShellTimer)) {
-                if ($timer) { $timer.Stop() }
+    }})
+    $tabIndex = 0
+    foreach ($tabName in $script:TabNames) {
+        $tabIndex++
+        $tabPercent = 54 + [int][math]::Floor(24 * $tabIndex / $script:TabNames.Count)
+        $script:StartupQueue.Enqueue([PSCustomObject]@{ Percent = $tabPercent; Text = "Reading $tabName settings..."; Tab = $tabName; Action = {
+            param($name)
+            Update-TweakPanel -Tab $name
+            if ($name -ne 'Personalization') {
+                foreach ($item in $script:Ui.MainTabs.Items) {
+                    if ($item.Header -eq $name) {
+                        if ($script:Ui["Panel_$name"].Children.Count -eq 0) { $item.Visibility = 'Collapsed' }
+                        else { $item.Visibility = 'Visible' }
+                    }
+                }
             }
-        })
-        $script:Timer.Start()
-        $script:ClockTimer.Start()
-
-        Update-SplashProgress -Percent 100 -Text 'Ready'
-        # Keep the splash up briefly so it does not flash by on a fast machine.
-        while ($clock.ElapsedMilliseconds -lt 1800) {
-            Start-Sleep -Milliseconds 40
-            Update-SplashProgress -Percent 100 -Text 'Ready'
+        }})
+    }
+    $script:StartupQueue.Enqueue([PSCustomObject]@{ Percent = 82; Text = 'Reading system information...'; Tab = $null; Action = { Update-SystemInfoPanel }})
+    $script:StartupQueue.Enqueue([PSCustomObject]@{ Percent = 94; Text = 'Preparing the window...'; Tab = $null; Action = {
+        $settings = $script:StartupContext.Settings
+        $script:Ui.FollowSystemRadio.IsChecked = ($settings.AppTheme -eq 'System')
+        $script:Ui.LightRadio.IsChecked = ($settings.AppTheme -eq 'Light')
+        $script:Ui.DarkRadio.IsChecked = ($settings.AppTheme -eq 'Dark')
+        $script:Ui.ShowBackgroundBox.IsChecked = $settings.ShowBackground
+        Set-BackgroundVisibility -Show $settings.ShowBackground
+        $glassSupported = ((Get-WintilityEnvironment).WindowBuild -ge $script:GlassMinimumBuild)
+        if ($glassSupported) { $script:Ui.GlassNote.Text = 'Uses the Windows 11 backdrop. If the window looks wrong, turn this off.' }
+        else { $script:Ui.GlassBox.IsEnabled = $false; $script:Ui.GlassNote.Text = 'Needs Windows 11 (build 22621 or newer).' }
+        $script:Ui.GlassBox.IsChecked = ($settings.Glass -and $glassSupported)
+        if ($script:Ui.GlassBox.IsChecked) { Set-WindowGlass -Enable $true }
+        $script:Ui.AnimationsBox.IsChecked = $settings.Animations
+        Update-AnimationFlag
+        Connect-UiEvents
+        $script:StartupSettingsReady = $true
+        $script:Timer.Start(); $script:ClockTimer.Start()
+    }})
+    $script:StartupTimer = New-Object System.Windows.Threading.DispatcherTimer
+    $script:StartupTimer.Interval = [TimeSpan]::FromMilliseconds(40)
+    $script:StartupTimer.Add_Tick({
+        try {
+            if ($script:StartupQueue.Count -gt 0) {
+                $step = $script:StartupQueue.Dequeue()
+                & $step.Action $step.Tab
+                Update-SplashProgress -Percent $step.Percent -Text $step.Text
+            }
+            else {
+                $script:StartupTimer.Stop()
+                Update-SplashProgress -Percent 100 -Text 'Ready'
+                if ($script:StartupReadyFile) {
+                    try { New-Item -ItemType File -Path $script:StartupReadyFile -Force | Out-Null }
+                    catch { Write-WintilityLog -Severity WARN -Module 'UI' -Message "The ready signal could not be written. $($_.Exception.Message)" }
+                }
+                Show-SplashLaunchPrompt
+            }
         }
-    }
-    catch {
-        $script:SplashWindow.Close()
-        throw
-    }
-
-    $script:SplashWindow.Close()
-    Set-UiStatus 'Ready. Flip a switch to apply a tweak. Flip it off to revert.'
-    if ($ReadyFile) {
-        try { New-Item -ItemType File -Path $ReadyFile -Force | Out-Null }
-        catch { Write-WintilityLog -Severity WARN -Module 'UI' -Message "The ready signal could not be written. $($_.Exception.Message)" }
-    }
+        catch {
+            $script:StartupTimer.Stop()
+            $script:StartupFailed = $true
+            Write-WintilityLog -Severity ERROR -Module 'UI' -Message "Startup failed. $($_.Exception.Message)"
+            $script:Ui.SplashStatus.Text = "Startup failed: $($_.Exception.Message)"
+            $script:Window.Close()
+        }
+    })
+    $script:Ui.LaunchButton.Add_Click({ Begin-SplashLaunch })
+    $script:StartupTimer.Start()
+    Update-SplashProgress -Percent 10 -Text 'Loading the interface...'
     [void]$script:Window.ShowDialog()
+
+    if ($script:MainDialogCompleted) { return }
+    if ($script:StartupFailed) { throw 'Wintility initialization failed. See the application log for details.' }
+    throw 'Wintility startup was closed before Launch.'
 }
 
 Export-ModuleMember -Function Show-WintilityWindow

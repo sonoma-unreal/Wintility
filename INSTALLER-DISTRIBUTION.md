@@ -3,7 +3,7 @@
 Wintility's remote bootstrapper is maintained at the repository root in `install.ps1` and is published at:
 
 - Production installer: https://wintility.pages.dev/install.ps1
-- GitHub source: https://github.com/wintility/Wintility-Experimental/blob/main/install.ps1
+- GitHub source: https://github.com/sonoma-unreal/Wintility/blob/main/install.ps1
 
 ## Quick start
 

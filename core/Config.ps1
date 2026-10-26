@@ -121,6 +121,10 @@ function Test-WintilityConfigData {
         if ([string]::IsNullOrWhiteSpace((Get-WintilityProperty -Object $item -Name 'category'))) {
             $problems.Add("$label has no category.")
         }
+        $iconName = Get-WintilityProperty -Object $item -Name 'icon'
+        if ($null -ne $iconName -and ($iconName -isnot [string] -or $iconName -notmatch '^[A-Za-z0-9]+$')) {
+            $problems.Add("$label has an invalid icon name.")
+        }
         if ($script:WintilityTabs -notcontains (Get-WintilityProperty -Object $item -Name 'tab')) {
             $problems.Add("$label has an unknown tab.")
         }

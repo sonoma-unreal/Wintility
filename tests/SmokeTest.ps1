@@ -3,6 +3,10 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# The icon dictionary check uses WPF's XamlReader; load it here so the README's
+# direct test command works in a fresh Windows PowerShell process.
+Add-Type -AssemblyName PresentationFramework
+
 $root = Split-Path -Parent $PSScriptRoot
 Import-Module -Name (Join-Path $root 'core\Wintility.Core.psm1') -Force
 Set-WintilityRoot -Path $root
@@ -23,7 +27,7 @@ Write-Host '================================'
 Write-Host 'WINTILITY SMOKE TEST'
 Write-Host '================================'
 
-Assert-Check 'Version defined' (((Get-WintilityVersion).Version -eq '5.1.1') -and ((Get-WintilityVersion).Edition -eq 'Glowstone Edition'))
+Assert-Check 'Version defined' (((Get-WintilityVersion).Version -eq '5.2') -and ((Get-WintilityVersion).Edition -eq 'Fall Update'))
 
 $tabCounts = @{}
 foreach ($name in (Get-WintilityConfigNames)) {
@@ -95,9 +99,11 @@ foreach ($line in $parseErrors) { Write-Host "       $line" -ForegroundColor Yel
 
 # Power plan parsing. powercfg prints one plan per line, and the words around the GUID change with the language.
 $sample = @(
+    '',
     'Existing Power Schemes (* Active)',
     '-----------------------------------',
     'Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced) *',
+    '',
     'Power Scheme GUID: a1841308-3541-4fab-bc81-f71556f20b4a  (Power saver)',
     'Power Scheme GUID: 11111111-2222-3333-4444-555555555555  (Ultimate Performance)'
 )
@@ -120,6 +126,9 @@ try {
         $text = Get-Content -LiteralPath (Join-Path $root $file) -Raw -Encoding UTF8
         foreach ($match in [regex]::Matches($text, '(?<![A-Za-z$])Icon\.([A-Za-z]+)')) { $wanted[$match.Groups[1].Value] = $true }
         foreach ($match in [regex]::Matches($text, "-Icon '([A-Za-z]+)'")) { $wanted[$match.Groups[1].Value] = $true }
+    }
+    foreach ($configFile in @(Get-ChildItem -LiteralPath (Join-Path $root 'config') -Filter '*.json')) {
+        foreach ($match in [regex]::Matches((Get-Content -LiteralPath $configFile.FullName -Raw -Encoding UTF8), '"icon"\s*:\s*"([A-Za-z0-9]+)"')) { $wanted[$match.Groups[1].Value] = $true }
     }
     $missingIcons = @($wanted.Keys | Where-Object { -not $iconDictionary.Contains("Icon.$_") })
     if ($missingIcons.Count -gt 0) { $iconProblem = 'Missing icons: ' + ($missingIcons -join ', ') }

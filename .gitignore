@@ -2,3 +2,5 @@ dist/
 *.log
 .vs/
 .vscode/
+# Apple SF Pro font binaries are for local development only; do not redistribute.
+assets/fonts/

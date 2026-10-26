@@ -3,8 +3,8 @@
 
 $script:WintilityVersionInfo = [PSCustomObject]@{
     Product = 'Wintility'
-    Version = '5.1.1'
-    Edition = 'Glowstone Edition'
+    Version = '5.2'
+    Edition = 'Fall Update'
 }
 
 function Get-WintilityVersion {

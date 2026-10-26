@@ -14,7 +14,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Version = 'wintility-5.1.1-glowstone'
+$Version = 'wintility-5.2-fall-update'
 $Repository = 'sonoma-unreal/Wintility'
 $ExpectedSha256 = '9b622f0b3c2a4b73dd6ec3de9a5f633d240b08da0ac8f9738c61eb61232b51b4'
 
@@ -38,6 +38,7 @@ $RuntimeDirectories = @(
 $RequiredFiles = @(
     'Wintility.ps1'
     'assets\background.png'
+    'assets\icons\codex.png'
     'assets\icons\lucide.xaml'
     'commands\Wintility.Personalization.psm1'
     'commands\Wintility.Power.psm1'

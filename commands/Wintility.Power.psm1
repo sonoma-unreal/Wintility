@@ -65,12 +65,13 @@ function Invoke-WintilityPowerCfg {
 
 function ConvertFrom-WintilityPowerCfgList {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Lines)
+    param([Parameter(Mandatory)][AllowEmptyCollection()][AllowEmptyString()][string[]]$Lines)
     # powercfg prints one plan per line, for example:  Power Scheme GUID: 381b4222-...  (Balanced) *
     # The words around the GUID change with the Windows language, so only the GUID, the
     # name in parentheses and the trailing * (active plan) are used.
     $schemes = New-Object System.Collections.Generic.List[object]
     foreach ($line in $Lines) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
         if ($line -match ($script:GuidPattern + '\s+\((.*)\)\s*(\*)?\s*$')) {
             $schemes.Add([PSCustomObject]@{
                 Guid   = $Matches[1].ToLowerInvariant()
